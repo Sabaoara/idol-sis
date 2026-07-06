@@ -1,0 +1,2736 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORBIT — アイドルSNSシミュレーター</title>
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "xgnk3mtc96");
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+  :root{
+    --bg:#14101c; --bg-elev:#ffffff; --card:#ffffff; --card-2:#fafafa;
+    --pink:#ed4956; --peri:#5851d5; --gold:#e0a72e; --cyan:#4adede;
+    --text:#262626; --text-dim:#8e8e8e; --border:#dbdbdb;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0; height:100%; overflow:auto;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 20% -10%, rgba(139,143,255,0.18), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 90% 0%, rgba(255,92,138,0.14), transparent 60%),
+      #14101c;
+    color:var(--text); font-family:'Noto Sans JP', sans-serif; height:100dvh;
+    display:flex; align-items:center; justify-content:center; padding:24px 16px;
+  }
+  .display{font-family:'Zen Kaku Gothic New', sans-serif; font-weight:900;}
+  #app-root{ width:100%; max-width:400px; height:100%; display:flex; }
+  .phone{ background:linear-gradient(180deg, #1c1526, #171020); border:1px solid rgba(245,240,234,0.09); border-radius:34px; padding:10px; box-shadow:0 30px 80px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.02) inset; width:100%; height:100%; display:flex; flex-direction:column; }
+  .screen{ background:var(--bg-elev); border-radius:26px; overflow:hidden; flex:1; min-height:700px; display:flex; flex-direction:column; position:relative; }
+  .notch{ width:90px; height:22px; background:#0d0913; border-radius:0 0 16px 16px; margin:0 auto; position:relative; z-index:20; flex-shrink:0; }
+
+  @media (max-width:480px){
+    body{ padding:0; align-items:stretch; justify-content:stretch; }
+    #app-root{ max-width:100%; }
+    .phone{ border-radius:0; padding:0; border:none; box-shadow:none; }
+    .screen{ border-radius:0; }
+    .notch{ display:none; }
+  }
+
+  @keyframes shimmer{ 0%{background-position:-150% 0;} 100%{background-position:250% 0;} }
+  .foil{ position:relative; overflow:hidden; }
+  .foil::after{ content:""; position:absolute; inset:0; background:linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.35) 35%, rgba(255,255,255,0.05) 45%, transparent 60%); background-size:250% 100%; animation:shimmer 3.2s ease-in-out infinite; mix-blend-mode:overlay; pointer-events:none; }
+
+  /* onboarding */
+  .onboard{ padding:24px 22px 24px; flex:1; min-height:0; display:flex; flex-direction:column; overflow-y:auto; }
+  .eyebrow{ font-size:11px; letter-spacing:0.18em; color:var(--peri); font-weight:700; margin-bottom:6px; }
+  .onboard h1{ font-size:23px; margin:0 0 6px; line-height:1.35; }
+  .onboard p.sub{ color:var(--text-dim); font-size:12.5px; margin:0 0 16px; line-height:1.6; }
+  .field-label{ font-size:12px; color:var(--text-dim); margin:14px 0 7px; font-weight:700; }
+  .field-label:first-of-type{margin-top:0;}
+  .field-hint{ font-size:11px; color:var(--text-dim); margin:-3px 0 8px; line-height:1.5; }
+  input[type="text"], input[type="password"], textarea, select{ width:100%; background:var(--card-2); border:1px solid var(--border); color:var(--text); border-radius:12px; padding:12px 14px; font-family:'Noto Sans JP', sans-serif; font-size:14px; outline:none; transition:border-color .15s; appearance:none; }
+  input[type="text"]:focus, input[type="password"]:focus, textarea:focus, select:focus{border-color:var(--peri);}
+  textarea{resize:none;}
+  select{ background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%238e8e8e' d='M5 7l5 5 5-5z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; }
+
+  .pos-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .pos-btn, .gender-btn, .filter-swatch{ background:var(--card-2); border:1px solid var(--border); color:var(--text); border-radius:12px; padding:12px 10px; font-family:'Noto Sans JP', sans-serif; font-size:13px; font-weight:500; cursor:pointer; text-align:left; transition:all .15s; }
+  .pos-btn:hover, .gender-btn:hover{border-color:var(--peri);}
+  .pos-btn.active, .gender-btn.active, .filter-swatch.active{ background:linear-gradient(135deg, rgba(237,73,86,0.12), rgba(88,81,213,0.12)); border-color:var(--pink); }
+  .gender-row{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .gender-btn{ text-align:center; font-weight:700; }
+
+  .avatar-upload-row{ display:flex; align-items:center; gap:14px; margin-top:4px; }
+  .avatar-circle{ width:64px; height:64px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:900; color:#fff; background-size:cover; background-position:center; border:2px solid var(--border); }
+  .upload-btn{ background:var(--card-2); border:1px solid var(--border); color:var(--text); font-size:12px; font-weight:700; padding:9px 14px; border-radius:100px; cursor:pointer; font-family:'Noto Sans JP'; }
+  .upload-btn:hover{border-color:var(--peri);}
+  .upload-btn.small{ font-size:11px; padding:6px 11px; }
+
+  .member-block{ padding:10px 0; border-bottom:1px solid var(--border); }
+  .member-block .m-top{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .member-block .m-avatar-sm{ width:38px;height:38px;border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; color:#fff; background-size:cover; background-position:center; flex-shrink:0; }
+  .member-block .m-name-sm{ font-size:12.5px; font-weight:700; flex:1; }
+  .member-block select{ width:auto; min-width:110px; font-size:11.5px; padding:8px 24px 8px 8px; flex-shrink:0; }
+  .draft-name-input{ flex:1; min-width:0; background:var(--card); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:8px 10px; font-size:12.5px; font-weight:700; font-family:'Noto Sans JP'; outline:none; }
+  .draft-name-input:focus{ border-color:var(--peri); }
+  .stepper-row{ display:flex; align-items:center; gap:14px; }
+  .stepper-btn{ width:36px; height:36px; border-radius:50%; background:var(--card-2); border:1px solid var(--border); color:var(--text); font-size:18px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .stepper-btn:hover{ border-color:var(--peri); }
+  .stepper-val{ font-family:'Zen Kaku Gothic New'; font-weight:900; font-size:16px; min-width:44px; text-align:center; }
+  .goal-type-card.active-goal{ border-color:var(--pink); background:linear-gradient(135deg, rgba(237,73,86,0.08), rgba(88,81,213,0.08)); }
+  .member-row-actions{ display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+  .chev-link{ background:none; border:none; color:var(--peri); font-size:11.5px; font-weight:700; cursor:pointer; padding:0; font-family:'Noto Sans JP'; }
+  .remove-member-btn{ background:none; border:none; color:var(--pink); font-size:11.5px; font-weight:700; cursor:pointer; padding:0; font-family:'Noto Sans JP'; }
+  .photo-strip{ display:flex; gap:7px; overflow-x:auto; padding-bottom:2px; }
+  .photo-thumb{ position:relative; width:52px; height:52px; border-radius:10px; background-size:cover; background-position:center; flex-shrink:0; border:1px solid var(--border); }
+  .photo-thumb .rm{ position:absolute; top:-5px; right:-5px; width:16px; height:16px; border-radius:50%; background:#ff2d55; color:#fff; font-size:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:none; }
+  .photo-add-tile{ width:52px; height:52px; border-radius:10px; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; font-size:18px; color:var(--text-dim); cursor:pointer; flex-shrink:0; }
+  .photo-add-tile:hover{ border-color:var(--peri); color:var(--text); }
+
+  .preview-card{ margin-top:18px; border-radius:18px; padding:18px; background:linear-gradient(135deg, var(--pink), var(--peri)); min-height:150px; display:flex; flex-direction:column; justify-content:flex-end; position:relative; }
+  .preview-card .badge{ align-self:flex-start; background:rgba(20,16,28,0.55); backdrop-filter:blur(4px); padding:4px 10px; border-radius:100px; font-size:11px; font-weight:700; letter-spacing:0.05em; color:#fff; }
+  .preview-card .pname{ font-size:22px; margin-top:auto; text-shadow:0 2px 12px rgba(0,0,0,0.35); color:#fff; }
+  .preview-card .pgroup{ font-size:12px; opacity:0.9; font-weight:500; color:#fff; }
+
+  .primary-btn{ margin-top:20px; background:linear-gradient(135deg, var(--pink), #ff8a6a); border:none; color:#fff; font-weight:700; font-size:14px; padding:14px; border-radius:14px; cursor:pointer; font-family:'Noto Sans JP', sans-serif; transition:transform .12s, box-shadow .12s; }
+  .primary-btn:hover{transform:translateY(-1px); box-shadow:0 8px 24px -8px rgba(237,73,86,0.45);}
+  .primary-btn:disabled{opacity:0.4; cursor:not-allowed; transform:none; box-shadow:none;}
+  .primary-btn:active:not(:disabled){transform:translateY(0);}
+
+  /* app shell */
+  .topbar{ padding:14px 16px 10px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+  .topbar-right{ display:flex; align-items:center; gap:12px; }
+  .dm-icon-btn{ position:relative; background:none; border:none; font-size:18px; cursor:pointer; padding:0; line-height:1; }
+  .dm-badge{ position:absolute; top:-6px; right:-8px; background:var(--pink); color:#fff; font-size:9px; font-weight:800; min-width:15px; height:15px; border-radius:100px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
+  .brand{ font-size:15px; letter-spacing:0.12em; display:flex; align-items:center; gap:6px; color:var(--text); }
+  .brand .dot{width:7px;height:7px;border-radius:50%;background:var(--pink); box-shadow:0 0 8px rgba(237,73,86,0.5);}
+  .follower-chip{ font-size:11px; color:var(--text-dim); display:flex; align-items:center; gap:5px; font-weight:500; }
+  .follower-chip b{color:var(--gold); font-weight:700; font-family:'Zen Kaku Gothic New';}
+
+  .profile-header{ padding:12px 16px; display:flex; gap:12px; align-items:center; border-bottom:1px solid var(--border); }
+  .avatar{ width:48px;height:48px;border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:18px; font-weight:900; color:#fff; flex-shrink:0; background-size:cover; background-position:center; }
+  .profile-header .who{flex:1; min-width:0;}
+  .profile-header .name-row{display:flex; align-items:center; gap:6px;}
+  .profile-header .name-row .nm{font-size:14px; font-weight:700;}
+  .pos-tag{ font-size:10px; padding:2px 7px; border-radius:100px; background:rgba(88,81,213,0.12); color:var(--peri); font-weight:700; white-space:nowrap; }
+  .profile-header .grp{font-size:11px; color:var(--text-dim); margin-top:2px;}
+
+  .tabs{ display:flex; border-bottom:1px solid var(--border); }
+  .tab{ flex:1; text-align:center; padding:11px 0 9px; font-size:11.5px; font-weight:700; color:var(--text-dim); cursor:pointer; position:relative; border-bottom:2px solid transparent; }
+  .tab.active{ color:var(--text); border-bottom-color:var(--pink); }
+  .tab .badge-count{ position:absolute; top:5px; right:calc(50% - 24px); background:var(--pink); color:#fff; font-size:9px; font-weight:800; min-width:15px; height:15px; border-radius:100px; display:flex; align-items:center; justify-content:center; padding:0 3px; }
+
+  .feed-scroll{ flex:1; min-height:0; overflow-y:auto; padding:14px 14px 90px; background:var(--bg-elev); }
+  .feed-scroll::-webkit-scrollbar{width:0;}
+
+  .action-bar{ display:flex; align-items:center; gap:10px; background:var(--card-2); border:1px solid var(--border); border-radius:100px; padding:9px 14px; margin-bottom:10px; cursor:pointer; color:var(--text-dim); font-size:12.5px; }
+  .action-bar.new-post-bar{ margin-bottom:16px; }
+  .action-bar .plus{ width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg, var(--pink), var(--peri)); color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+  .action-bar .clock{ width:26px; height:26px; border-radius:50%; background:var(--card); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+
+  .post{ background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:16px; overflow:hidden; animation:pop-in .35s ease; }
+  @keyframes pop-in{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+  .post-head{ display:flex; align-items:center; gap:10px; padding:12px 14px; cursor:pointer; }
+  .post-avatar{ width:34px;height:34px;border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:13px; font-weight:900; color:#fff; flex-shrink:0; background-size:cover; background-position:center; }
+  .post-head .meta{flex:1; min-width:0;}
+  .post-head .nm{font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; color:var(--text);}
+  .post-photo{ margin:0; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; font-size:44px; position:relative; overflow:hidden; }
+  .post-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .post-photo .cap-in-photo{ position:absolute; bottom:10px; left:12px; right:12px; font-size:11px; font-weight:700; background:rgba(20,16,28,0.5); backdrop-filter:blur(3px); padding:4px 9px; border-radius:100px; display:inline-block; width:fit-content; color:#fff; }
+
+  .post-actions{ display:flex; align-items:center; gap:14px; padding:9px 12px 0; }
+  .post-actions .action-icon{ background:none; border:none; padding:0; cursor:pointer; font-size:22px; line-height:1; color:var(--text); font-family:'Noto Sans JP'; }
+  .post-actions .action-icon.liked{ color:var(--pink); }
+  .post-actions .action-icon.spacer{ margin-left:auto; font-size:19px; }
+  .likes-text{ padding:6px 14px 0; font-size:13px; font-weight:700; color:var(--text); }
+  .caption-line{ padding:4px 14px 0; font-size:13px; line-height:1.55; color:var(--text); }
+  .caption-line b{ margin-right:5px; }
+  .caption-line .hashtag{ color:var(--peri); }
+  .comment-preview{ padding:3px 14px 0; font-size:12.5px; color:var(--text-dim); }
+  .comment-preview:empty{ display:none; }
+  .comment-preview b{ color:var(--text); font-weight:700; margin-right:5px; }
+  .view-comments-link{ padding:4px 14px 0; font-size:12px; color:var(--text-dim); cursor:pointer; }
+  .post-time{ padding:6px 14px 12px; font-size:10px; color:var(--text-dim); letter-spacing:0.02em; }
+
+  .comments{ display:none; padding:6px 14px 4px; flex-direction:column; gap:2px; max-height:280px; overflow-y:auto; }
+  .comments.open{ display:flex; }
+  .comments::-webkit-scrollbar{ width:4px; }
+  .comments::-webkit-scrollbar-thumb{ background:rgba(0,0,0,0.15); border-radius:2px; }
+  .comment-block{ padding:5px 0; }
+  .comment-block.pinned{ background:rgba(224,167,46,0.1); border-radius:10px; padding:7px 8px; margin-bottom:4px; }
+  .comment{ font-size:12px; line-height:1.5; color:var(--text); animation:pop-in .3s ease; }
+  .comment.reply{ margin-left:16px; }
+  .comment b{color:var(--peri); font-weight:700;}
+  .comment.reply b{ color:var(--pink); }
+  .comment.ai-tag b::after{ content:" ✨"; }
+  .pin-flag{ font-size:9px; color:var(--gold); font-weight:700; margin-bottom:2px; display:block; }
+  .comment-actions{ display:flex; gap:12px; margin-top:2px; align-items:center; }
+  .comment-actions button{ background:none; border:none; color:var(--text-dim); font-size:10.5px; cursor:pointer; padding:0; font-family:'Noto Sans JP'; }
+  .comment-actions button:hover{ color:var(--text); }
+  .comment-actions .like-btn.liked{ color:var(--pink); font-weight:700; }
+  .reply-box{ display:flex; gap:6px; margin-top:6px; margin-left:0; }
+  .reply-box input{ flex:1; background:var(--card-2); border:1px solid var(--border); color:var(--text); border-radius:100px; padding:7px 12px; font-size:12px; font-family:'Noto Sans JP'; outline:none; }
+  .reply-box button{ background:var(--pink); border:none; color:#fff; font-weight:700; font-size:11px; padding:0 12px; border-radius:100px; cursor:pointer; }
+
+  .empty-state{ text-align:center; padding:50px 20px; color:var(--text-dim); font-size:13px; line-height:1.7; }
+  .empty-state .big{font-size:32px; margin-bottom:10px;}
+
+  .notif-item{ display:flex; gap:10px; align-items:flex-start; padding:12px 2px; border-bottom:1px solid var(--border); }
+  .notif-item .n-avatar{ width:32px;height:32px;border-radius:50%; background:var(--card-2); display:flex;align-items:center;justify-content:center; font-size:14px; flex-shrink:0; }
+  .notif-item .n-text{font-size:12.5px; line-height:1.6; color:var(--text);}
+  .notif-item .n-text b{color:var(--text); font-weight:700;}
+  .notif-item .n-time{font-size:10px; color:var(--text-dim); margin-top:2px;}
+
+  .profile-tab{padding:6px 2px;}
+  .profile-banner{ height:110px; border-radius:16px; background-size:cover; background-position:center; position:relative; margin-bottom:14px; overflow:hidden; }
+  .banner-edit-btn{ position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.9); border:1px solid var(--border); color:var(--text); font-size:11px; font-weight:700; padding:6px 12px; border-radius:100px; cursor:pointer; font-family:'Noto Sans JP'; }
+  .profile-top{ display:flex; align-items:center; gap:12px; margin-bottom:4px; }
+  .profile-top .avatar-lg{ width:64px;height:64px;border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:24px; font-weight:900; color:#fff; flex-shrink:0; background-size:cover; background-position:center; }
+  .change-avatar-btn{ font-size:11px; color:var(--peri); background:none; border:none; cursor:pointer; padding:0; margin-top:4px; font-family:'Noto Sans JP'; font-weight:700; }
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:16px 0 20px; }
+  .stat-box{ background:var(--card-2); border:1px solid var(--border); border-radius:14px; padding:14px 8px; text-align:center; }
+  .stat-box .v{font-family:'Zen Kaku Gothic New'; font-weight:900; font-size:18px; color:var(--gold);}
+  .stat-box .l{font-size:10px; color:var(--text-dim); margin-top:3px;}
+  .section-title{font-size:12px; font-weight:700; color:var(--text-dim); margin:18px 0 8px; display:flex; align-items:center; justify-content:space-between;}
+  .member-row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+  .member-row .m-avatar{ width:36px;height:36px;border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:13px; font-weight:900; color:#fff; flex-shrink:0; background-size:cover; background-position:center; }
+  .member-row .m-name{font-size:13px; font-weight:700; color:var(--text);}
+  .member-row .m-pos{font-size:11px; color:var(--text-dim);}
+  .you-tag{ margin-left:auto; font-size:10px; font-weight:700; color:var(--pink); background:rgba(237,73,86,0.1); padding:3px 8px; border-radius:100px; }
+  .chev{ margin-left:auto; color:var(--text-dim); font-size:14px; }
+  .edit-profile-btn{ width:100%; background:var(--card-2); border:1px solid var(--border); color:var(--text); font-weight:700; font-size:12.5px; padding:10px; border-radius:100px; cursor:pointer; font-family:'Noto Sans JP'; margin-top:12px; }
+
+  .post-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px; margin-top:6px; }
+  .grid-tile{ position:relative; aspect-ratio:1/1; overflow:hidden; border-radius:5px; cursor:pointer; background:var(--card-2); }
+  .grid-tile img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .grid-tile-mood{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .pin-badge{ position:absolute; top:4px; left:4px; font-size:12px; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
+  .pin-profile-btn{ display:block; width:100%; margin-top:14px; background:var(--card-2); border:1px solid var(--border); color:var(--text); font-weight:700; font-size:12.5px; padding:11px; border-radius:100px; cursor:pointer; font-family:'Noto Sans JP'; }
+
+  .bottom-nav{ display:flex; border-top:1px solid var(--border); background:var(--bg-elev); }
+  .nav-item{ flex:1; text-align:center; padding:11px 0 13px; cursor:pointer; color:var(--text-dim); font-size:9.5px; font-weight:700; position:relative; }
+  .nav-item .ic{ font-size:18px; display:block; margin-bottom:2px; }
+  .nav-item.active{color:var(--text);}
+  .nav-dot{ position:absolute; top:7px; right:calc(50% - 20px); width:7px; height:7px; border-radius:50%; background:var(--pink); }
+  .hint-strip{ text-align:center; font-size:11px; color:var(--text-dim); margin-top:12px; line-height:1.6; }
+
+  /* overlays (composer / member profile / post detail / profile edit) */
+  .composer-overlay{ position:absolute; inset:0; background:var(--bg-elev); z-index:15; display:flex; flex-direction:column; animation:pop-in .2s ease; }
+  .composer-overlay.layer2{ z-index:16; }
+  .composer-overlay.layer3{ z-index:17; }
+  .composer-overlay.layer4{ z-index:18; }
+  .overlay-topbar{ display:flex; align-items:center; justify-content:space-between; padding:14px 14px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .overlay-topbar .ot-btn{ background:none; border:none; color:var(--text-dim); font-size:13px; font-family:'Noto Sans JP'; font-weight:700; cursor:pointer; padding:4px; }
+  .overlay-topbar .ot-title{ font-size:13px; font-weight:700; color:var(--text); }
+  .overlay-topbar .ot-share{ color:var(--pink); }
+  .overlay-topbar .ot-share:disabled{ color:var(--text-dim); opacity:0.5; cursor:not-allowed; }
+  .overlay-body{ flex:1; min-height:0; overflow-y:auto; padding:16px; }
+  .pick-hint{ font-size:12px; color:var(--text-dim); margin-bottom:12px; line-height:1.6; }
+  .album-btn{ width:100%; display:flex; align-items:center; justify-content:center; gap:8px; background:linear-gradient(135deg, rgba(237,73,86,0.1), rgba(88,81,213,0.1)); border:1px dashed var(--border); color:var(--text); font-weight:700; font-size:13px; padding:16px; border-radius:16px; cursor:pointer; margin-bottom:18px; font-family:'Noto Sans JP'; }
+  .album-btn:hover{ border-color:var(--peri); }
+  .template-label{ font-size:11px; color:var(--text-dim); margin-bottom:8px; font-weight:700; }
+  .template-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .template-tile{ aspect-ratio:1/1; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer; border:2px solid transparent; transition:border-color .15s; }
+  .template-tile:hover{ border-color:var(--peri); }
+  .ig-photo-wrap{ border-radius:16px; overflow:hidden; aspect-ratio:1/1; margin-bottom:14px; display:flex; align-items:center; justify-content:center; font-size:60px; position:relative; }
+  .ig-photo-wrap img{ width:100%; height:100%; object-fit:cover; display:block; transition:filter .15s; }
+  .filter-row{ display:flex; gap:8px; overflow-x:auto; margin-bottom:16px; }
+  .filter-chip{ flex-shrink:0; background:var(--card-2); border:1px solid var(--border); border-radius:100px; padding:7px 13px; font-size:11px; color:var(--text-dim); cursor:pointer; white-space:nowrap; }
+  .filter-chip.active{ border-color:var(--pink); color:var(--text); background:rgba(237,73,86,0.08); }
+  .hashtag-row{ display:flex; gap:7px; overflow-x:auto; margin-bottom:14px; }
+  .hashtag-chip{ flex-shrink:0; background:var(--card-2); border:1px solid var(--border); color:var(--peri); border-radius:100px; padding:6px 11px; font-size:11px; cursor:pointer; white-space:nowrap; }
+  .ig-who-row{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .auto-caption-btn{ margin-left:auto; background:linear-gradient(135deg, rgba(237,73,86,0.1), rgba(88,81,213,0.1)); border:1px solid var(--border); color:var(--text); font-size:11px; font-weight:700; padding:6px 12px; border-radius:100px; cursor:pointer; font-family:'Noto Sans JP'; white-space:nowrap; }
+  .auto-caption-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+  .ig-who-row .av{ width:28px;height:28px;border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#fff; background-size:cover; background-position:center; }
+  .ig-who-row .nm{ font-size:12.5px; font-weight:700; color:var(--text); }
+  .char-count{ text-align:right; font-size:10px; color:var(--text-dim); margin-top:6px; }
+  .ai-note{ font-size:11px; color:var(--text-dim); margin-top:12px; line-height:1.6; display:flex; gap:6px; align-items:flex-start; }
+  .ai-note .ic{flex-shrink:0;}
+  input[type="file"]{ display:none; }
+
+  .member-overlay-top{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .member-overlay-top .avatar-lg{ width:60px;height:60px;border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:22px; font-weight:900; color:#fff; background-size:cover; background-position:center; flex-shrink:0; }
+
+  .edit-banner-preview{ height:100px; border-radius:14px; background-size:cover; background-position:center; margin-bottom:8px; }
+
+  /* live tab */
+  .live-idle{ text-align:center; padding:30px 10px 10px; }
+  .live-idle .big-emoji{ font-size:44px; margin-bottom:12px; }
+  .live-idle h3{ font-size:16px; margin:0 0 8px; color:var(--text); }
+  .live-idle p{ font-size:12.5px; color:var(--text-dim); line-height:1.7; margin:0 0 18px; }
+  .live-start-btn{ background:linear-gradient(135deg,#ff3b6e,var(--peri)); border:none; color:#fff; font-weight:700; font-size:14px; padding:14px 26px; border-radius:100px; cursor:pointer; font-family:'Noto Sans JP'; }
+
+  .live-stage{ position:relative; border-radius:18px; overflow:hidden; aspect-ratio:3/4; background:linear-gradient(160deg, #2a1d3b, #1a1225); }
+  .live-stage video{ width:100%; height:100%; object-fit:cover; display:block; transform:scaleX(-1); }
+  .live-noCam{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:rgba(255,255,255,0.75); font-size:12px; text-align:center; padding:0 24px; line-height:1.7; }
+  .live-noCam .dotpulse{ width:14px;height:14px;border-radius:50%; background:var(--pink); animation:pulseDot 1.4s ease-in-out infinite; }
+  .live-noCam .retry-btn{ background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.3); color:#fff; font-size:11px; font-weight:700; padding:7px 14px; border-radius:100px; cursor:pointer; font-family:'Noto Sans JP'; margin-top:4px; }
+  @keyframes pulseDot{ 0%,100%{opacity:.4; transform:scale(0.9);} 50%{opacity:1; transform:scale(1.15);} }
+
+  .live-badge{ position:absolute; top:12px; left:12px; background:#ff2d55; color:#fff; font-size:11px; font-weight:800; padding:4px 10px; border-radius:6px; display:flex; align-items:center; gap:5px; z-index:3; }
+  .live-badge .reddot{ width:6px;height:6px;border-radius:50%; background:#fff; animation:pulseDot 1.2s ease-in-out infinite; }
+  .live-viewer-chip{ position:absolute; top:12px; right:12px; background:rgba(20,16,28,0.55); backdrop-filter:blur(4px); color:#fff; font-size:11px; font-weight:700; padding:4px 10px; border-radius:100px; z-index:3; }
+  .live-comments-scroll{ position:absolute; left:10px; right:70px; bottom:12px; max-height:170px; overflow:hidden; display:flex; flex-direction:column-reverse; gap:6px; z-index:3; }
+  .live-comment-line{ font-size:11.5px; color:#fff; background:rgba(20,16,28,0.4); backdrop-filter:blur(2px); padding:5px 10px; border-radius:100px; width:fit-content; max-width:100%; animation:pop-in .25s ease; }
+  .live-comment-line b{ color:#ffd9e6; font-weight:700; }
+  .live-gift-toast{ position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); background:rgba(20,16,28,0.7); backdrop-filter:blur(4px); color:#fff; font-size:13px; font-weight:700; padding:10px 18px; border-radius:100px; z-index:4; animation:giftPop 1.8s ease forwards; pointer-events:none; }
+  @keyframes giftPop{ 0%{opacity:0; transform:translate(-50%,-40%) scale(0.8);} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.05);} 80%{opacity:1;} 100%{opacity:0; transform:translate(-50%,-60%) scale(1);} }
+
+  .live-controls{ display:flex; justify-content:center; margin-top:14px; }
+  .live-end-btn{ background:var(--card-2); border:1px solid var(--border); color:var(--text); font-weight:700; font-size:12.5px; padding:10px 20px; border-radius:100px; cursor:pointer; font-family:'Noto Sans JP'; }
+  .live-end-btn:hover{ border-color:var(--pink); }
+
+  .live-summary{ text-align:center; padding:20px 6px 6px; }
+  .live-summary h3{ font-size:16px; margin:14px 0 4px; color:var(--text); }
+  .live-summary .sub{ font-size:12px; color:var(--text-dim); margin-bottom:18px; }
+  .summary-stats{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:20px; }
+  .close-summary-btn{ margin-top:12px; background:var(--card-2); border:1px solid var(--border); color:var(--text-dim); font-size:12px; padding:9px 16px; border-radius:100px; cursor:pointer; font-family:'Noto Sans JP'; }
+
+  .award-toast{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(20,16,28,0.8); z-index:50; color:#fff; text-align:center; animation:awardPop .4s ease, awardFadeOut .5s ease 2.6s forwards; pointer-events:none; }
+  .award-toast-emoji{ font-size:56px; margin-bottom:10px; }
+  .award-toast-title{ font-size:22px; font-weight:900; font-family:'Zen Kaku Gothic New'; }
+  .award-toast-sub{ font-size:13px; margin-top:6px; opacity:0.85; }
+  @keyframes awardPop{ 0%{opacity:0; transform:scale(0.85);} 100%{opacity:1; transform:scale(1);} }
+  @keyframes awardFadeOut{ from{opacity:1;} to{opacity:0;} }
+
+  /* goal card & overlay */
+  .goal-card{ background:var(--card-2); border:1px solid var(--border); border-radius:16px; padding:14px; margin-top:12px; }
+  .goal-empty{ font-size:12.5px; color:var(--text-dim); line-height:1.6; }
+  .goal-title{ font-size:13.5px; font-weight:700; color:var(--text); }
+  .goal-title-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .goal-countdown{ font-size:11px; font-weight:800; color:var(--pink); background:rgba(237,73,86,0.1); padding:3px 9px; border-radius:100px; white-space:nowrap; }
+  .goal-bar-track{ height:8px; background:var(--border); border-radius:100px; margin-top:10px; overflow:hidden; }
+  .goal-bar-fill{ height:100%; background:linear-gradient(90deg, var(--pink), var(--peri)); border-radius:100px; transition:width .3s ease; }
+  .goal-nums{ display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-dim); margin-top:5px; }
+  .goal-achieved{ font-size:13px; font-weight:700; color:var(--gold); margin-top:4px; }
+  .goal-type-card{ background:var(--card-2); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px; cursor:pointer; }
+  .goal-type-card:hover{ border-color:var(--peri); }
+
+  /* stats ranking */
+  .rank-row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+  .rank-num{ width:18px; font-size:12px; font-weight:800; color:var(--text-dim); text-align:center; flex-shrink:0; }
+  .rank-mid{ flex:1; min-width:0; }
+  .rank-name{ font-size:12.5px; font-weight:700; color:var(--text); }
+  .rank-caption{ font-size:11px; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rank-likes{ font-size:12px; color:var(--pink); font-weight:700; flex-shrink:0; }
+
+  /* DMs */
+  .dm-list-row{ display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid var(--border); cursor:pointer; }
+  .dm-list-mid{ flex:1; min-width:0; }
+  .dm-list-name{ font-size:13px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:6px; }
+  .dm-list-preview{ font-size:11.5px; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px; }
+  .dm-unread-dot{ width:7px; height:7px; border-radius:50%; background:var(--pink); display:inline-block; }
+  .dm-thread{ flex:1; min-height:0; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:8px; }
+  .dm-bubble-row{ display:flex; }
+  .dm-bubble-row.mine{ justify-content:flex-end; }
+  .dm-bubble{ max-width:75%; background:var(--card-2); border:1px solid var(--border); color:var(--text); padding:9px 13px; border-radius:16px 16px 16px 4px; font-size:13px; line-height:1.5; }
+  .dm-bubble.mine{ background:linear-gradient(135deg, var(--pink), var(--peri)); color:#fff; border:none; border-radius:16px 16px 4px 16px; }
+  .dm-typing{ font-size:11.5px; color:var(--text-dim); font-style:italic; padding:2px 4px; }
+  .dm-input-row{ display:flex; gap:8px; padding:12px 14px; border-top:1px solid var(--border); flex-shrink:0; }
+  .dm-input-row input{ flex:1; background:var(--card-2); border:1px solid var(--border); color:var(--text); border-radius:100px; padding:10px 14px; font-size:13px; font-family:'Noto Sans JP'; outline:none; }
+  .dm-input-row button{ background:linear-gradient(135deg, var(--pink), var(--peri)); border:none; color:#fff; font-weight:700; font-size:12.5px; padding:0 18px; border-radius:100px; cursor:pointer; font-family:'Noto Sans JP'; }
+</style>
+</head>
+<body>
+<div id="app-root"></div>
+<canvas id="hidden-canvas" style="display:none;"></canvas>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script>
+  var firebaseConfig = {
+    apiKey: "AIzaSyDu9vjEDgkC_wfS8KxM1jJURNbmj99wXD4",
+    authDomain: "idol-sns.firebaseapp.com",
+    projectId: "idol-sns",
+    storageBucket: "idol-sns.firebasestorage.app",
+    messagingSenderId: "109514553847",
+    appId: "1:109514553847:web:7a3815f9c9a3cdc90556f2",
+    measurementId: "G-GRH510LJGF"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var fbAuth = firebase.auth();
+  var fbDb = firebase.firestore();
+  var fbStorage = firebase.storage();
+</script>
+
+<script>
+(function(){
+
+  /* ---------------- data ---------------- */
+  var AVATAR_COLORS = ['#ed4956','#5851d5','#4adede','#e0a72e','#ff9a6a','#2ecc71','#a259ff','#ff6fa5','#3ba9c7'];
+  var ALL_POSITIONS = ["リーダー","センター","メインボーカル","リードボーカル","メインダンサー","リードダンサー","メインラッパー","ビジュアル","マンネ"];
+  var NAME_SUGGESTIONS = ["セレス","ノア","リラ","ハル","ジュン","ミナ","ユウ","カイ","レン","ソウ"];
+
+  var MOODS = [
+    {id:'selca', label:'自撮り', emoji:'🤳', grad:'linear-gradient(135deg,#ed4956,#e0a72e)'},
+    {id:'backstage', label:'楽屋', emoji:'🎤', grad:'linear-gradient(135deg,#5851d5,#241b31)'},
+    {id:'practice', label:'練習室', emoji:'💃', grad:'linear-gradient(135deg,#4adede,#5851d5)'},
+    {id:'group', label:'メンバーと', emoji:'✨', grad:'linear-gradient(135deg,#ed4956,#5851d5)'},
+    {id:'cafe', label:'カフェ', emoji:'☕', grad:'linear-gradient(135deg,#e0a72e,#ff9a6a)'},
+    {id:'stage', label:'ステージ', emoji:'🌙', grad:'linear-gradient(135deg,#241b31,#5851d5)'},
+    {id:'live', label:'配信の一コマ', emoji:'🎥', grad:'linear-gradient(135deg,#ff2d55,#5851d5)'}
+  ];
+
+  var FILTERS = [
+    {id:'none', label:'オリジナル', css:'none'},
+    {id:'warm', label:'暖色', css:'saturate(1.3) sepia(0.15) contrast(1.05)'},
+    {id:'cool', label:'寒色', css:'saturate(1.1) hue-rotate(-8deg) contrast(1.05) brightness(1.03)'},
+    {id:'mono', label:'モノクロ', css:'grayscale(1) contrast(1.1)'},
+    {id:'dreamy', label:'夢見心地', css:'brightness(1.08) contrast(0.9) saturate(1.15)'},
+    {id:'vivid', label:'ビビッド', css:'saturate(1.6) contrast(1.15)'},
+    {id:'film', label:'フィルム', css:'sepia(0.25) contrast(1.1) saturate(0.9) brightness(0.97)'},
+    {id:'nostalgic', label:'ノスタルジック', css:'sepia(0.4) contrast(0.9) brightness(1.05) saturate(0.8)'},
+    {id:'highkey', label:'ハイキー', css:'brightness(1.18) contrast(0.85) saturate(1.05)'},
+    {id:'cinema', label:'シネマ', css:'contrast(1.2) saturate(0.75) brightness(0.92) hue-rotate(-4deg)'},
+    {id:'pink', label:'ピンク可愛い', css:'saturate(1.25) hue-rotate(6deg) brightness(1.05)'}
+  ];
+
+  var HASHTAG_POOL = ["#今日の一枚","#推し活","#idol","#kpop","#supply","#今日の私","#デビュー記念","#practice","#backstage","#いいね返し"];
+
+  var FAN_NAMES = ["luna_eclipse08","hana_bokkeum","eclipse_since24","starlight_jp","ceres_bias",
+    "moonchild_92","orbit_daily","yuna4ever","eclipse.jp","bam_hanul_fan","sun_and_moon22",
+    "haru_stan","petal_light","univ3rse_kr","glowup_lira","tiny_planet7","moon_bias01",
+    "glow_petal","eclipse_daily97","luna.chip","hanabi_supply","nightsky_fan22","bias_wrecker__",
+    "fourthgen_fan","comeback_soon22","teamwork_dream","onlyone_bias","staaan_account",
+    "mochi_fan22","pink_supply","glitter_star9","dailybias_kr","forever_stan","cloud9_fan"];
+
+  var FAN_COMMENTS = [
+    // ultra-short stamps / emoji (kept plentiful on purpose so repeats happen naturally)
+    "😍","😍😍","😍😍😍","🥹","🥹💗","💗","💗💗","🔥","🔥🔥","😭","😭😭","🙌","✨","✨✨",
+    "💯","😆","🎉","🫶","🫶🫶","😻","💕","🥺","😳","👍","🤍","💫","😘","😊","❤️","❤️❤️",
+    // short natural reactions
+    "かわいい😍","いいね!","尊い","好きすぎる","かわいすぎ","尊い…","神","最高です",
+    "かっこいい!!","癒される〜","推せる♡","😭😭","好き好き好き","尊死","これは尊い","🥹💗",
+    "素敵すぎ","天使か","わかる…","かわいいの反則","もう好き","尊い尊い","えもすぎる",
+    "可愛すぎて無理","ほんとに好き","にっこりしちゃう","キュンとした","顔面国宝すぎる",
+    "これはいい写真","毎日投稿して〜","癒しをありがとう","元気出た!","雰囲気良すぎ",
+    "スタイル良すぎ","そのファッション好き","おはよう〜🌞","今日も可愛い","眼福です",
+    "かっこよすぎワロタ","この表情好き","かわいい","かわいい!","いいね","いいね!!",
+    "尊い!","尊い😭","好き","好き!","最高","最高!!","かわいすぎる","尊すぎ","エモい",
+    "天使","女神","王子様みたい","バブい",
+    // longer / otaku-style
+    "尊すぎて呼吸忘れた", "これはガチで保存案件📸", "沼らせないでほしい…もう遅いけど",
+    "供給過多で処理落ちしてる", "今日のMVPはこの投稿", "布教用に永久保存した",
+    "これ見て寿命伸びた", "尊死…尊死…尊死…", "語彙力が尊さに溶けた",
+    "ここ神アングルすぎん?", "この一枚で推し変防止された", "まって画質良すぎ神",
+    "これはCM案件でしょ", "尊みが深すぎて沈没", "既に待ち受けにした🫶",
+    "供給ありがとうございます🙏🙏", "今日も生きる理由できた", "スクショ100枚目",
+    "これはバズる予感しかしない", "尊い尊い尊い尊い(語彙力終了)", "この笑顔だけで一生ついてく",
+    "円盤買う数増えました", "推してよかった…人生変わった", "これはもう伝説の一枚",
+    "尊さで泣きました普通に", "今日のベストショット更新", "ずっと見てられる…無限ループ",
+    "みんな見て!!これ神すぎる", "供給過多すぎて仕事にならない", "尊い以外の言葉が出てこない"
+  ];
+  function getComment(){ return pick(FAN_COMMENTS); }
+
+  var NAME_TEMPLATE_COMMENTS = [
+    "{name}かわいい😍","{name}ちゃん推せる","{name}最高すぎ","{name}尊い",
+    "{name}ちゃん今日も可愛い","{name}好き","{name}スタイル良すぎ","{name}王子様みたい",
+    "{name}女神すぎる","{name}かっこいい!!","{name}天使か","{name}ちゃんおはよう🌞",
+    "{name}のこの表情好き","{name}尊すぎて無理","{name}かわいすぎん?","{name}スタイル完璧",
+    "{name}に会いたい","{name}ちゃん頑張って!","{name}の笑顔で元気出た","{name}見て寿命伸びた",
+    "{name}すきすぎる","{name}顔面国宝","{name}ちゃん尊死","{name}今日もかわいいね",
+    "{name}のファンでよかった","{name}ちゃん愛してる","{name}が世界一かわいい"
+  ];
+  function getRealisticComment(name){
+    // mostly generic reactions, but a good chunk reference the idol's name directly for realism
+    if(Math.random() < 0.35){
+      return pick(NAME_TEMPLATE_COMMENTS).replace(/\{name\}/g, name);
+    }
+    return pick(FAN_COMMENTS);
+  }
+
+  var LIVE_COMMENTS = ["😍😍😍","かわいい!!!","神配信きた","声好きすぎる","ずっと見てられる",
+    "今日も尊い","忙しいのに見にきちゃった","保存できないのが悔しい","楽しい〜🥹","もっと話して!",
+    "この配信神すぎん?","癒される〜","今日も供給ありがとう","スクショした📸","尊死不可避",
+    "テンション上がる〜!!","声だけで満足できる","ここ好き", "永久保存版", "みんな来て見て!!",
+    "かわいい","好き","いいね!","😭","🥹","最高すぎる","😍","🔥","💗","✨"];
+
+  var GIFTS = [ {icon:'🌟', name:'スター'}, {icon:'💎', name:'ダイヤ'}, {icon:'🎀', name:'リボン'}, {icon:'👑', name:'クラウン'}, {icon:'🕊️', name:'ハート便り'} ];
+
+  var MEMBER_POST_TEMPLATES = [
+    {cat:'practice', text:"今日も練習頑張った〜!みんな見てくれてありがとう💗"},
+    {cat:'practice', text:"リハーサル終わりました!今日も声出し切った💪"},
+    {cat:'practice', text:"朝から晩まで練習漬けの一日でした。でも充実してる"},
+    {cat:'practice', text:"新しい振り付け、やっと覚えました!見てもらう日が楽しみ"},
+    {cat:'practice', text:"今日のレッスンで新しい発見があった気がする"},
+    {cat:'practice', text:"声が枯れるまで歌いました…でも楽しかった!"},
+    {cat:'practice', text:"振り入れ日でした。明日には固めたい"},
+    {cat:'practice', text:"ダンスの先生に褒められた!ちょっと嬉しい"},
+    {cat:'practice', text:"今日は基礎練だけの日。地味だけど大事"},
+    {cat:'practice', text:"新曲のフォーメーション確認中。まだ覚えきれてない…"},
+    {cat:'practice', text:"リハ終わりのこの疲労感、嫌いじゃない"},
+    {cat:'practice', text:"今日は自主練で振り付け見返してました"},
+    {cat:'practice', text:"高音のところ、やっと安定してきた気がする🎤"},
+    {cat:'food', text:"お腹すいた〜今日のご飯なににしよう🍚"},
+    {cat:'food', text:"今日のご飯、めちゃくちゃ美味しかった🍜"},
+    {cat:'food', text:"差し入れいただきました!感謝です🙏"},
+    {cat:'food', text:"甘いもの食べて元気チャージ完了🍰"},
+    {cat:'food', text:"今日は自炊してみました!意外とうまくできた"},
+    {cat:'food', text:"みんなでご飯行ってきました〜楽しかった!"},
+    {cat:'food', text:"新しいカフェ開拓しました。また行きたい☕"},
+    {cat:'food', text:"お弁当作ってみた。次はもっと上手に作りたい"},
+    {cat:'food', text:"深夜にラーメン食べたい欲と戦ってます"},
+    {cat:'food', text:"今日のおやつタイム🍪 みんなは何食べた?"},
+    {cat:'food', text:"果物差し入れいただいて幸せです🍑"},
+    {cat:'scenery', text:"移動中に見えた空が綺麗すぎた🌇"},
+    {cat:'scenery', text:"今日はいい天気で気分もいいです☀️"},
+    {cat:'scenery', text:"帰り道の夜景に癒された🌃"},
+    {cat:'scenery', text:"久しぶりに外の空気吸えて最高でした"},
+    {cat:'scenery', text:"今日見た景色、忘れられなさそう"},
+    {cat:'scenery', text:"雨の日の窓の外もなんか好き☔"},
+    {cat:'scenery', text:"星が綺麗に見えた夜でした✨"},
+    {cat:'scenery', text:"桜(季節じゃないけど)みたいな空の色だった"},
+    {cat:'outfit', text:"衣装決まった!早くみんなに見せたいな"},
+    {cat:'outfit', text:"今日の私服、地味に気に入ってます"},
+    {cat:'outfit', text:"メイクさんに新しいスタイル提案してもらいました"},
+    {cat:'outfit', text:"衣装合わせ中の一コマ📸"},
+    {cat:'outfit', text:"今日はラフな格好で過ごしてます"},
+    {cat:'outfit', text:"新しいヘアスタイル、どうかな?"},
+    {cat:'outfit', text:"アクセサリー新調しました、気に入ってる"},
+    {cat:'outfit', text:"今日のカラコン、いつもと違う色にしてみた"},
+    {cat:'outfit', text:"衣装の色、実は自分で提案したんです"},
+    {cat:'rest', text:"今日はゆっくりお休み中です🌙"},
+    {cat:'rest', text:"ちょっと疲れたのでコーヒーブレイク☕"},
+    {cat:'rest', text:"移動時間長かった…今は爆睡したい"},
+    {cat:'rest', text:"今日はオフ!のんびりしてます"},
+    {cat:'rest', text:"お風呂上がりでさっぱりしてます"},
+    {cat:'rest', text:"ベッドから動きたくない日ってありますよね"},
+    {cat:'rest', text:"今日は何もしない贅沢を満喫中"},
+    {cat:'general', text:"この後ライブ配信するかも…お楽しみに"},
+    {cat:'general', text:"新曲の準備中…ちょっとだけ見せちゃう"},
+    {cat:'general', text:"みんなのコメント全部読んでるよ、いつもありがとう"},
+    {cat:'general', text:"おはようございます!今日も一日頑張ります"},
+    {cat:'general', text:"みんな、体調崩してない?季節の変わり目気をつけてね"},
+    {cat:'general', text:"今週も応援ありがとう!来週も頑張るぞ"},
+    {cat:'general', text:"ふと思ったんだけど、みんなの一番好きな曲何?"},
+    {cat:'general', text:"最近ハマってることについて今度話すね"},
+    {cat:'general', text:"リハーサル終わり!今日も一日頑張るぞ"},
+    {cat:'general', text:"今日は取材でした。緊張したけど楽しかった"},
+    {cat:'general', text:"次のグループ写真、みんなで撮るの楽しみ"},
+    {cat:'general', text:"最近みんなのコメントに元気もらってます、ありがとう"},
+    {cat:'general', text:"ちょっとしたことでも報告したくなっちゃう、聞いてくれる?"},
+    {cat:'general', text:"今日は移動日でした。次の現場でまた会おうね"}
+  ];
+  var CAPTION_CATEGORY_BY_MOOD = { practice:'practice', cafe:'food', backstage:'rest', selca:'outfit', stage:'outfit', group:'general' };
+  function pickCaptionForMood(moodId){
+    var cat = CAPTION_CATEGORY_BY_MOOD[moodId] || 'general';
+    var pool = MEMBER_POST_TEMPLATES.filter(function(t){ return t.cat===cat; });
+    if(pool.length===0) pool = MEMBER_POST_TEMPLATES;
+    return pick(pool).text;
+  }
+
+  var CAPTION_TEMPLATES = [
+    "今日も一日頑張りました💪 応援ありがとう #推し活",
+    "みんなに会いたくなって撮っちゃった📸 #今日の私",
+    "最近ハマってることがあるので今度話すね🌙",
+    "練習の合間にひとやすみ☕ #backstage",
+    "今日の衣装、気に入ってます✨ #今日の一枚",
+    "みんなのコメント全部読んでるよ、いつもありがとう💗",
+    "新しい一面、見せられたかな?😳",
+    "心が満たされる一日でした🥹 #感謝",
+    "ちょっとだけ素の顔📷 #いいね返し",
+    "今日はこんな気分の私です🌸",
+    "みんなと過ごす時間が一番好き #supply",
+    "次の目標に向けてがんばるぞ!💪",
+    "この瞬間を残しておきたくて📸",
+    "みんなのおかげで今日も笑顔でいられます😊",
+    "ちょっと待っててね、近々サプライズあるかも…👀"
+  ];
+
+  var GOAL_TYPES = [
+    {id:'comeback', label:'カムバック活動', days:14, rewardLabel:'限定フィルター「銀河」', multiplier:1.4, emoji:'💿'},
+    {id:'awards', label:'年末授賞式', days:30, rewardLabel:'限定プロフィール背景「レッドカーペット」', multiplier:1.8, emoji:'🏆'},
+    {id:'concert', label:'単独コンサート', days:21, rewardLabel:'限定スタンプセット', multiplier:1.6, emoji:'🎤'},
+    {id:'world_tour', label:'ワールドツアー', days:60, rewardLabel:'限定プロフィール背景「世界地図」', multiplier:3.0, emoji:'🌍'},
+    {id:'global_campaign', label:'国際音楽祭出演', days:45, rewardLabel:'限定スタンプ「国際共演記念」', multiplier:2.2, emoji:'🎪'}
+  ];
+
+  // Long-term "hall of fame" ladder — always progressing as followers grow, no deadline.
+  // Uses generic award-category terms (rookie/popularity/main-prize/grand-prize) rather than
+  // any specific real award show name, since those categories are used across many ceremonies.
+  var AWARD_TIERS = [
+    {label:'新人賞', threshold:50000, emoji:'🌱'},
+    {label:'人気賞', threshold:300000, emoji:'⭐'},
+    {label:'本賞', threshold:1000000, emoji:'🏅'},
+    {label:'大賞', threshold:5000000, emoji:'🏆'},
+    {label:'ワールドアイコン賞', threshold:30000000, emoji:'🌍'},
+    {label:'伝説の殿堂入り', threshold:100000000, emoji:'👑'}
+  ];
+
+  var FAN_DM_OPENERS = [
+    "{name}ちゃん、いつも応援してます!今日も可愛かったです😍",
+    "はじめまして!今日から推しになりました🥹よろしくお願いします",
+    "{name}のライブ配信、感動しました…声が好きすぎます",
+    "お仕事忙しいと思うけど、無理しないでね💗いつも応援してる",
+    "{name}の笑顔で元気もらってます!返信きたら嬉しいな",
+    "今度のカムバック楽しみにしてます!新曲も絶対聴きます",
+    "{name}に伝えたいことがあって…いつも支えられてます、ありがとう",
+    "体調崩さないように気をつけてね!ファンみんな心配してるよ",
+    "今日の投稿、保存しました📸 最高でした",
+    "{name}のファンになって本当によかったです。人生変わりました",
+    "突然すみません!ずっと言いたかったことがあって、{name}のおかげで毎日頑張れてます",
+    "この前のステージ、本当にかっこよかったです…忘れられません",
+    "{name}が休んでる姿も見たいです。たまにはゆっくりしてね",
+    "デビューした時から応援してます!ずっとついていきます",
+    "今日誕生日なんですけど、{name}の投稿見て元気出ました🎂",
+    "友達に布教したら一緒にファンになってくれました!嬉しい",
+    "{name}のグループの曲、通勤中ずっと聴いてます🎧",
+    "初めてDM送ります…緊張してます!いつも見てます",
+    "{name}の1年前の投稿を今更見返して泣いてます",
+    "今日仕事で辛いことあったけど、{name}見て頑張れそうです",
+    "推し変しないので安心してください、ずっとここにいます",
+    "{name}のグッズ全部集めてます!今度写真送りたいくらい",
+    "夜遅くにすみません、どうしても伝えたくて",
+    "今日のステージ衣装、色味が最高でした✨",
+    "{name}を知って毎日が楽しくなりました、ありがとう"
+  ];
+
+  var FAN_DM_FOLLOWUP_TEMPLATES = [
+    "わぁ返信来た!!すごく嬉しいです🥹",
+    "そんなこと言ってもらえるなんて…ありがとうございます!",
+    "これからもずっと応援します!",
+    "保存しました、一生の宝物です😭",
+    "{name}からの返信で今日一日頑張れます!",
+    "優しい…本当に大好きです",
+    "これ友達に自慢します!!",
+    "ずっとこの会話読み返しちゃう🥹",
+    "生きる糧をありがとう…大切にします",
+    "信じられない、本当にありがとうございます😭😭",
+    "スクショして待ち受けにします!",
+    "今日一番の出来事です、ありがとう!",
+    "優しさが染みます…もっと頑張って応援します",
+    "これ見て泣いちゃいました、嬉しすぎて",
+    "この瞬間を忘れません、本当にありがとう"
+  ];
+
+  var FAN_DM_QUESTION_TEMPLATES = [
+    "今度のカムバックはいつ頃か教えてもらえたり…しますか?😳",
+    "今日は何してたんですか?気になります!",
+    "{name}の好きな食べ物ってなんですか?",
+    "休みの日は何して過ごすんですか?",
+    "今度ファンミーティングとかありますか?会いたいです",
+    "最近ハマってることとかありますか?",
+    "今日の天気、そっちはどうですか?こっちは晴れです☀️",
+    "{name}のオススメの曲とか教えてほしいです!",
+    "最近見た映画とかドラマでおすすめありますか?",
+    "今日のご飯何食べたんですか?気になります",
+    "次のライブ配信っていつ頃になりそうですか?",
+    "{name}が今一番欲しいものって何ですか?",
+    "苦手な食べ物とかあるんですか?意外と気になります",
+    "今日の気分を色で例えると何色ですか?",
+    "リフレッシュ方法とか教えてもらえますか?"
+  ];
+
+  var FAN_DM_CASUAL_TEMPLATES = [
+    "話せて本当に嬉しかったです…また話しかけてもいいですか?😳",
+    "今日はこのへんで…また来ます!今日はありがとう",
+    "忙しいのにありがとう。無理しないでね",
+    "このやり取り、一生大事にします🥹",
+    "また今度お話できたら嬉しいです!",
+    "{name}と話せて今日は一日いい日でした",
+    "これからも応援してます!また来ますね",
+    "今日はゆっくり休んでください、おやすみなさい🌙",
+    "また気が向いたときにお話聞かせてください",
+    "今日はこの辺で失礼します、ずっと応援してます",
+    "会話できただけで満足です、ありがとうございました",
+    "無理せず、体第一でいてくださいね"
+  ];
+
+  function pickFallbackDMReply(stage){
+    if(stage<=0) return pick(FAN_DM_FOLLOWUP_TEMPLATES);
+    if(stage===1) return pick(FAN_DM_QUESTION_TEMPLATES);
+    return pick(FAN_DM_CASUAL_TEMPLATES);
+  }
+
+  var CURRENT_YEAR = 2026;
+  var dmIdSeq = 1;
+  var commentIdSeq = 1;
+  function nextCommentId(){ return 'c'+(commentIdSeq++); }
+  function makeComment(user, text, opts){
+    opts = opts || {};
+    return { id: nextCommentId(), user:user, text:text, ai:!!opts.ai, isReply:!!opts.isReply,
+      likes: opts.likes!=null ? opts.likes : Math.floor(Math.random()*40), liked:false };
+  }
+
+  /* ---------------- state ---------------- */
+  var state = {
+    screen:'loading',
+    uid:null, userDisplayName:'', authLoading:true,
+    name:'', groupName:'', bio:'', position:null, gender:'girl', debutYear:'2024',
+    avatarDataUrl:null, backgroundDataUrl:null,
+    groupSize:5, teammateDrafts:[], pendingGoalType:null,
+    followers: 12480,
+    posts: [], notifications: [], members: [],
+    activeTab:'feed', unreadNotif:0,
+    composerOpen:false, composerStep:'pick', composerImage:null, composerText:'', composerFilter:'none',
+    replyOpenCommentId:null, replyDraft:'',
+    liveActive:false, liveStartTime:null, liveViewers:0, liveComments:[], liveSummary:null, liveCapturedFrame:null,
+    liveCamDenied:false, liveCamErrorType:null,
+    viewingMemberName:null, viewingPostId:null, editingProfile:false,
+    sessionStartFollowers: 12480, goal:null, settingGoal:false, viewingStats:false, awardTierIndex:-1,
+    dms:[], viewingDMList:false, viewingDMId:null
+  };
+
+  var cameraStream = null;
+  var liveTimers = [];
+
+  var root = document.getElementById('app-root');
+
+  /* ---------------- helpers ---------------- */
+  function esc(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function initials(name){ return (name||'?').slice(0,1); }
+  function fmtFollowers(n){ if(n>=10000){ return (n/10000).toFixed(1).replace('.0','')+'万'; } return n.toLocaleString(); }
+  function nowLabel(){ return 'たった今'; }
+  function debutLabel(){ var years = CURRENT_YEAR - parseInt(state.debutYear,10) + 1; if(years<1) years=1; return 'デビュー'+years+'年目'; }
+  function genderLabel(){ return state.gender==='boy' ? 'ボーイズグループ' : 'ガールズグループ'; }
+  function avatarStyle(dataUrl,color){ return dataUrl ? 'background-image:url('+dataUrl+')' : 'background:'+color; }
+  function linkifyCaption(text){ return esc(text).replace(/#([^\s#]+)/g, '<span class="hashtag">#$1</span>'); }
+  function findPost(id){ return state.posts.filter(function(p){ return String(p.id)===String(id); })[0]; }
+
+  function rebuildTeammateDrafts(){
+    var count = Math.max(0, state.groupSize - 1);
+    var current = state.teammateDrafts || [];
+    var next = current.slice(0, count);
+    for(var i=current.length; i<count; i++){
+      next.push({ name: NAME_SUGGESTIONS[i % NAME_SUGGESTIONS.length], color: AVATAR_COLORS[(i+1) % AVATAR_COLORS.length], position:null, photos:[] });
+    }
+    state.teammateDrafts = next;
+    fillMissingDraftPositions();
+  }
+  function fillMissingDraftPositions(){
+    var used = state.teammateDrafts.map(function(d){ return d.position; }).filter(Boolean);
+    if(state.position) used.push(state.position);
+    var pool = ALL_POSITIONS.filter(function(p){ return used.indexOf(p)===-1; });
+    state.teammateDrafts.forEach(function(d){
+      if(!d.position){ d.position = pool.shift() || ALL_POSITIONS[0]; }
+    });
+  }
+  function onPlayerPositionChange(newPos){
+    state.position = newPos;
+    state.teammateDrafts.forEach(function(d){ if(d.position===newPos){ d.position=null; } });
+    fillMissingDraftPositions();
+  }
+  function onTeammateDraftPositionChange(idx, newPos){
+    var draft = state.teammateDrafts[idx];
+    var oldPos = draft.position;
+    var swapIdx = -1;
+    state.teammateDrafts.forEach(function(d,i){ if(i!==idx && d.position===newPos){ swapIdx=i; } });
+    draft.position = newPos;
+    if(swapIdx>=0){ state.teammateDrafts[swapIdx].position = oldPos; }
+  }
+  function buildMembersFromDrafts(){
+    return state.teammateDrafts.map(function(d){
+      return { name: d.name.trim() || '名無し', color: d.color, position: d.position, photos: d.photos.slice(), avatarDataUrl: d.photos[0]||null, liked:false };
+    });
+  }
+
+  function memberFillMissingPositions(){
+    var used = state.members.map(function(m){ return m.position; }).filter(Boolean);
+    used.push(state.position);
+    var pool = ALL_POSITIONS.filter(function(p){ return used.indexOf(p)===-1; });
+    state.members.forEach(function(m){
+      if(!m.position){ m.position = pool.shift() || ALL_POSITIONS[0]; }
+    });
+  }
+  function onMemberPositionChange(idx, newPos){
+    var m = state.members[idx];
+    var oldPos = m.position;
+    var swapIdx = -1;
+    state.members.forEach(function(x,i){ if(i!==idx && x.position===newPos){ swapIdx=i; } });
+    m.position = newPos;
+    if(swapIdx>=0){ state.members[swapIdx].position = oldPos; }
+  }
+  function addMember(){
+    if(state.members.length >= ALL_POSITIONS.length-1) return;
+    var idx = state.members.length;
+    var used = state.members.map(function(m){ return m.position; });
+    used.push(state.position);
+    var posPool = ALL_POSITIONS.filter(function(p){ return used.indexOf(p)===-1; });
+    state.members.push({
+      name: NAME_SUGGESTIONS[idx % NAME_SUGGESTIONS.length],
+      color: AVATAR_COLORS[(idx+1) % AVATAR_COLORS.length],
+      position: posPool[0] || ALL_POSITIONS[0],
+      photos: [], avatarDataUrl:null, liked:false
+    });
+  }
+  function removeMember(idx){
+    state.members.splice(idx,1);
+  }
+
+  function togglePinToProfile(post){
+    if(post.pinnedToProfile){ post.pinnedToProfile=false; post.pinnedAt=null; return; }
+    var pinned = state.posts.filter(function(p){ return p.isMine && p.pinnedToProfile; });
+    if(pinned.length>=3){
+      pinned.sort(function(a,b){ return a.pinnedAt-b.pinnedAt; });
+      pinned[0].pinnedToProfile=false; pinned[0].pinnedAt=null;
+    }
+    post.pinnedToProfile = true; post.pinnedAt = Date.now();
+  }
+
+  function startGoal(goalTypeId){
+    var def = GOAL_TYPES.filter(function(g){ return g.id===goalTypeId; })[0];
+    if(!def) return;
+    state.goal = {
+      type: def.id, label: def.label, emoji: def.emoji, rewardLabel: def.rewardLabel,
+      startFollowers: state.followers,
+      targetFollowers: Math.round(state.followers * def.multiplier),
+      deadline: Date.now() + def.days*24*60*60*1000,
+      achieved:false, claimedReward:false, expired:false
+    };
+  }
+  function goalProgressPercent(){
+    if(!state.goal) return 0;
+    var g = state.goal;
+    var span = g.targetFollowers - g.startFollowers;
+    if(span<=0) return 100;
+    var pct = ((state.followers - g.startFollowers) / span) * 100;
+    return Math.max(0, Math.min(100, pct));
+  }
+  function goalDaysLeft(){
+    if(!state.goal) return 0;
+    return Math.max(0, Math.ceil((state.goal.deadline - Date.now())/(24*60*60*1000)));
+  }
+
+  /* ---------------- LONG-TERM AWARD LADDER ---------------- */
+  function checkAwardTierProgress(){
+    var newIndex = state.awardTierIndex;
+    for(var i=0;i<AWARD_TIERS.length;i++){
+      if(state.followers >= AWARD_TIERS[i].threshold){ newIndex = i; }
+    }
+    if(newIndex > state.awardTierIndex){
+      state.awardTierIndex = newIndex;
+      var tier = AWARD_TIERS[newIndex];
+      state.notifications.unshift({ icon:tier.emoji, time:nowLabel(), html: '<b>'+esc(tier.label)+'</b>を受賞しました！フォロワー'+fmtFollowers(state.followers)+'人突破🎉' });
+      if(state.activeTab !== 'notif'){ state.unreadNotif++; }
+      return tier;
+    }
+    return null;
+  }
+
+  function showAwardToast(tier){
+    var screenEl = document.getElementById('screen-root');
+    if(!screenEl) return;
+    var toast = document.createElement('div');
+    toast.className = 'award-toast';
+    toast.innerHTML = '<div class="award-toast-emoji">'+tier.emoji+'</div>'+
+      '<div class="award-toast-title">'+esc(tier.label)+'</div>'+
+      '<div class="award-toast-sub">'+fmtFollowers(state.followers)+'人突破！</div>';
+    screenEl.appendChild(toast);
+    setTimeout(function(){ if(toast.parentNode){ toast.parentNode.removeChild(toast); } }, 3200);
+  }
+
+  function renderAwardTierCard(){
+    var idx = state.awardTierIndex;
+    var current = idx>=0 ? AWARD_TIERS[idx] : null;
+    var next = AWARD_TIERS[idx+1] || null;
+    var pct;
+    if(next){
+      var base = current ? current.threshold : 0;
+      pct = Math.max(0, Math.min(100, ((state.followers-base)/(next.threshold-base))*100));
+    } else { pct = 100; }
+    return '<div class="goal-card">'+
+      '<div class="goal-title-row"><div class="goal-title">'+(current?current.emoji+' '+esc(current.label):'🌱 まだ受賞なし')+'</div>'+
+        (next ? '<span class="goal-countdown">次: '+next.emoji+' '+esc(next.label)+'</span>' : '<span class="goal-countdown">👑 最高ランク達成済み</span>')+
+      '</div>'+
+      '<div class="goal-bar-track"><div class="goal-bar-fill" style="width:'+pct.toFixed(1)+'%;"></div></div>'+
+      '<div class="goal-nums"><span>'+fmtFollowers(state.followers)+'人</span><span>'+(next?fmtFollowers(next.threshold)+'人':'∞')+'</span></div>'+
+    '</div>';
+  }
+
+  /* ---------------- DIRECT MESSAGES ---------------- */
+  function findDM(id){ return state.dms.filter(function(c){ return c.id===id; })[0]; }
+  function unreadDMCount(){ return state.dms.filter(function(c){ return c.unread; }).length; }
+
+  function spawnRandomDM(){
+    var fan = pick(FAN_NAMES);
+    var opener = pick(FAN_DM_OPENERS).replace(/\{name\}/g, state.name);
+    var conv = { id:'dm'+(dmIdSeq++), fanName:fan, color: pick(AVATAR_COLORS),
+      messages:[{from:'fan', text:opener, time:nowLabel()}], unread:true, turn:0 };
+    state.dms.unshift(conv);
+    state.notifications.unshift({ icon:'✉️', time:nowLabel(), html: '<b>'+esc(fan)+'</b>からメッセージが届きました:「'+esc(opener)+'」' });
+    if(state.activeTab !== 'notif'){ state.unreadNotif++; }
+  }
+
+  function requestAIDMReply(conv, name, groupName, position){
+    return new Promise(function(resolve){
+      try{
+        var history = conv.messages.slice(-8).map(function(m){
+          return (m.from==='fan' ? 'ファン' : name) + ': ' + m.text;
+        }).join('\n');
+        var prompt = "あなたはK-POPアイドル「"+name+"」（グループ:"+groupName+"、ポジション:"+position+"）のファン「"+conv.fanName+"」として、DMで会話しています。これまでの会話:\n"+history+
+          "\n\nアイドルの直近の返信を踏まえて、ファンとして自然に続く返信を1つだけ、今風のカジュアルな日本語で書いてください（絵文字を適度に含め、40文字程度、ポジティブな内容のみ）。説明文や前置きは不要で、返信本文だけを出力してください。";
+        fetch("https://api.anthropic.com/v1/messages", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({
+            model:"claude-sonnet-4-6",
+            max_tokens:150,
+            messages:[{ role:"user", content:prompt }]
+          })
+        }).then(function(r){ return r.json(); })
+        .then(function(data){
+          var textBlock = (data.content||[]).map(function(b){ return b.text || ''; }).join('\n').trim();
+          var cleaned = textBlock.replace(/^["「]|["」]$/g,'').trim();
+          resolve(cleaned || null);
+        }).catch(function(){ resolve(null); });
+      }catch(e){ resolve(null); }
+    });
+  }
+
+  function renderDMBubble(msg){
+    var mine = msg.from==='me';
+    return '<div class="dm-bubble-row'+(mine?' mine':'')+'"><div class="dm-bubble'+(mine?' mine':'')+'">'+esc(msg.text)+'</div></div>';
+  }
+
+  function appendDMMessage(convId, msg){
+    var wrap = document.getElementById('dm-thread-'+convId);
+    if(!wrap) return;
+    var typingEl = document.getElementById('dm-typing-'+convId);
+    if(typingEl) typingEl.remove();
+    wrap.insertAdjacentHTML('beforeend', renderDMBubble(msg));
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function patchDMBadge(){
+    var el = document.getElementById('dm-badge');
+    var count = unreadDMCount();
+    if(!el) return;
+    if(count>0){ el.textContent = count; el.style.display='flex'; }
+    else { el.style.display='none'; }
+  }
+
+  function sendDM(convId){
+    var conv = findDM(convId);
+    if(!conv) return;
+    var input = document.getElementById('dm-input-'+convId);
+    var text = input ? input.value.trim() : '';
+    if(!text) return;
+    var myMsg = { from:'me', text:text, time:nowLabel() };
+    conv.messages.push(myMsg);
+    appendDMMessage(convId, myMsg);
+    if(input){ input.value=''; }
+
+    var wrap = document.getElementById('dm-thread-'+convId);
+    if(wrap){
+      wrap.insertAdjacentHTML('beforeend', '<div class="dm-typing" id="dm-typing-'+convId+'">'+esc(conv.fanName)+'が入力中…</div>');
+      wrap.scrollTop = wrap.scrollHeight;
+    }
+
+    var stageForFallback = conv.turn || 0;
+    conv.turn = stageForFallback + 1;
+
+    requestAIDMReply(conv, state.name, state.groupName, state.position).then(function(replyText){
+      var final = (replyText || pickFallbackDMReply(stageForFallback)).replace(/\{name\}/g, state.name);
+      var fanMsg = { from:'fan', text:final, time:nowLabel() };
+      conv.messages.push(fanMsg);
+      appendDMMessage(convId, fanMsg);
+    });
+  }
+
+  /* ---------------- root render / cloud persistence ---------------- */
+  var PERSIST_FIELDS = ['name','groupName','bio','position','gender','debutYear','avatarDataUrl','backgroundDataUrl',
+    'groupSize','members','followers','sessionStartFollowers','posts','notifications','goal','dms','unreadNotif','screen','awardTierIndex'];
+
+  function isDataUrl(str){ return typeof str==='string' && str.indexOf('data:image')===0; }
+
+  // Resize + compress an uploaded image client-side before it's used/stored, to keep Storage usage low.
+  function compressImageFile(file, maxDim, quality){
+    maxDim = maxDim || 1280;
+    quality = quality || 0.75;
+    return new Promise(function(resolve){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var img = new Image();
+        img.onload = function(){
+          try{
+            var w = img.width, h = img.height;
+            var scale = Math.min(1, maxDim / Math.max(w, h));
+            var cw = Math.max(1, Math.round(w*scale)), ch = Math.max(1, Math.round(h*scale));
+            var canvas = document.createElement('canvas');
+            canvas.width = cw; canvas.height = ch;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, cw, ch);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          }catch(err){ resolve(e.target.result); }
+        };
+        img.onerror = function(){ resolve(e.target.result); };
+        img.src = e.target.result;
+      };
+      reader.onerror = function(){ resolve(null); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function uploadIfNeeded(dataUrl, pathHint){
+    if(!isDataUrl(dataUrl)) return Promise.resolve(dataUrl);
+    try{
+      var ref = fbStorage.ref().child('users/'+state.uid+'/'+pathHint+'_'+Date.now()+'.jpg');
+      return ref.putString(dataUrl, 'data_url').then(function(snap){ return snap.ref.getDownloadURL(); }).catch(function(){ return null; });
+    }catch(e){ return Promise.resolve(null); }
+  }
+
+  function saveState(){
+    if(!state.uid) return;
+    try{
+      var snapshot = {};
+      PERSIST_FIELDS.forEach(function(k){ snapshot[k] = state[k]; });
+      if(Array.isArray(snapshot.posts) && snapshot.posts.length>60){ snapshot.posts = snapshot.posts.slice(0,60); }
+      if(Array.isArray(snapshot.notifications) && snapshot.notifications.length>100){ snapshot.notifications = snapshot.notifications.slice(0,100); }
+
+      var uploadTasks = [];
+
+      if(isDataUrl(snapshot.avatarDataUrl)){
+        uploadTasks.push(uploadIfNeeded(snapshot.avatarDataUrl, 'avatar').then(function(url){
+          if(url){ snapshot.avatarDataUrl = url; state.avatarDataUrl = url; }
+        }));
+      }
+      if(isDataUrl(snapshot.backgroundDataUrl)){
+        uploadTasks.push(uploadIfNeeded(snapshot.backgroundDataUrl, 'background').then(function(url){
+          if(url){ snapshot.backgroundDataUrl = url; state.backgroundDataUrl = url; }
+        }));
+      }
+      (snapshot.members||[]).forEach(function(m, mi){
+        if(isDataUrl(m.avatarDataUrl)){
+          uploadTasks.push(uploadIfNeeded(m.avatarDataUrl, 'member_'+mi+'_avatar').then(function(url){
+            if(url){ m.avatarDataUrl = url; if(state.members[mi]) state.members[mi].avatarDataUrl = url; }
+          }));
+        }
+        (m.photos||[]).forEach(function(photoUrl, pi){
+          if(isDataUrl(photoUrl)){
+            uploadTasks.push(uploadIfNeeded(photoUrl, 'member_'+mi+'_photo_'+pi).then(function(url){
+              if(url){
+                m.photos[pi] = url;
+                if(state.members[mi] && state.members[mi].photos){ state.members[mi].photos[pi] = url; }
+              }
+            }));
+          }
+        });
+      });
+      (snapshot.posts||[]).forEach(function(p, pi){
+        if(p.photo && p.photo.type==='upload' && isDataUrl(p.photo.dataUrl)){
+          uploadTasks.push(uploadIfNeeded(p.photo.dataUrl, 'post_'+pi).then(function(url){
+            if(url){
+              p.photo.dataUrl = url;
+              var live = findPost(p.id);
+              if(live && live.photo){ live.photo.dataUrl = url; }
+            }
+          }));
+        }
+        if(isDataUrl(p.avatarDataUrl)){
+          uploadTasks.push(uploadIfNeeded(p.avatarDataUrl, 'post_avatar_'+pi).then(function(url){
+            if(url){
+              p.avatarDataUrl = url;
+              var live = findPost(p.id);
+              if(live){ live.avatarDataUrl = url; }
+            }
+          }));
+        }
+      });
+
+      Promise.all(uploadTasks).then(function(){
+        fbDb.collection('users').doc(state.uid).set(snapshot).catch(function(){ /* fail silently */ });
+      });
+    }catch(e){ /* fail silently, app still works this session */ }
+  }
+
+  function loadStateFromFirestore(uid){
+    return fbDb.collection('users').doc(uid).get().then(function(doc){
+      if(doc.exists){
+        var data = doc.data();
+        PERSIST_FIELDS.forEach(function(k){ if(data[k]!==undefined){ state[k] = data[k]; } });
+        return state.screen==='app' && !!state.name;
+      }
+      return false;
+    }).catch(function(){ return false; });
+  }
+
+  function resetAllData(){
+    if(!confirm('保存されているデータを削除して、最初からやり直しますか？この操作は取り消せません。')) return;
+    if(state.uid){
+      fbDb.collection('users').doc(state.uid).delete().catch(function(){}).then(function(){ location.reload(); });
+    } else {
+      location.reload();
+    }
+  }
+
+  function signOutUser(){
+    fbAuth.signOut();
+  }
+
+  var saveDebounceTimer = null;
+  function scheduleSave(){
+    if(!state.uid) return;
+    if(saveDebounceTimer){ clearTimeout(saveDebounceTimer); }
+    saveDebounceTimer = setTimeout(function(){ saveDebounceTimer = null; saveState(); }, 2500);
+  }
+
+  function render(){
+    if(state.screen==='loading'){ root.innerHTML = renderLoadingScreen(); }
+    else if(state.screen==='login'){ root.innerHTML = renderLoginScreen(); bindLoginScreen(); }
+    else if(state.screen==='onboarding'){
+      var onbEl = document.querySelector('.onboard');
+      var onbTop = onbEl ? onbEl.scrollTop : 0;
+      root.innerHTML = renderOnboarding(); bindOnboarding();
+      var onbEl2 = document.querySelector('.onboard');
+      if(onbEl2){ onbEl2.scrollTop = onbTop; }
+    }
+    else {
+      var scrollSelectors = ['#scroll-area', '.overlay-body', '.dm-thread'];
+      var savedTops = scrollSelectors.map(function(sel){
+        var el = document.querySelector(sel);
+        return el ? el.scrollTop : null;
+      });
+      var newTier = checkAwardTierProgress();
+      root.innerHTML = renderApp(); bindApp();
+      if(newTier){ showAwardToast(newTier); }
+      scrollSelectors.forEach(function(sel, i){
+        if(savedTops[i]!=null){
+          var el = document.querySelector(sel);
+          if(el){ el.scrollTop = savedTops[i]; }
+        }
+      });
+      if(state.activeTab==='live' && state.liveActive){ attachCameraToVideo(); }
+      scheduleSave();
+    }
+  }
+
+  function renderLoadingScreen(){
+    return '<div class="phone"><div class="notch"></div><div class="screen">'+
+      '<div class="onboard" style="justify-content:center; align-items:center; text-align:center;">'+
+        '<div class="eyebrow">ORBIT</div><div class="field-hint">読み込み中…</div>'+
+      '</div></div></div>';
+  }
+
+  function renderLoginScreen(){
+    var body = '<div class="eyebrow">ORBIT · IDOL MODE</div>'+
+      '<h1 class="display">ログインして<br>始めよう</h1>'+
+      '<p class="sub">好きなIDとパスワードを決めて登録してください。次回以降は同じID・パスワードでログインすると続きから始められます。</p>'+
+      '<input type="text" id="auth-id" placeholder="ID（半角英数字・3〜20文字）" autocapitalize="off" autocorrect="off" style="margin-bottom:10px;">'+
+      '<input type="password" id="auth-pw" placeholder="パスワード（6文字以上）" style="margin-bottom:16px;">'+
+      '<button class="primary-btn" id="btn-signup" style="margin-top:0;">新規登録してはじめる</button>'+
+      '<button class="upload-btn" id="btn-login" style="margin-top:10px; width:100%; padding:14px;">すでに登録済み（ログイン）</button>';
+    return '<div class="phone"><div class="notch"></div><div class="screen">'+
+      '<div class="onboard" style="justify-content:center; align-items:center; text-align:center;">'+
+        body+
+      '</div></div></div>';
+  }
+
+  function idToEmail(id){ return id.trim().toLowerCase()+'@orbit.local'; }
+
+  function bindLoginScreen(){
+    var idInput = document.getElementById('auth-id');
+    var pwInput = document.getElementById('auth-pw');
+    var signupBtn = document.getElementById('btn-signup');
+    var loginBtn = document.getElementById('btn-login');
+    if(!signupBtn || !loginBtn) return;
+
+    signupBtn.addEventListener('click', function(){
+      var id = (idInput.value||'').trim();
+      var pw = pwInput.value||'';
+      if(!/^[a-zA-Z0-9_]{3,20}$/.test(id)){ alert('IDは半角英数字と_（アンダースコア）で3〜20文字にしてください。'); return; }
+      if(pw.length<6){ alert('パスワードは6文字以上にしてください。'); return; }
+      fbAuth.createUserWithEmailAndPassword(idToEmail(id), pw).then(function(cred){
+        return cred.user.updateProfile({displayName:id});
+      }).catch(function(err){
+        if(err.code==='auth/email-already-in-use'){ alert('このIDは既に使われています。別のIDにするか、「ログイン」をお試しください。'); }
+        else if(err.code==='auth/weak-password'){ alert('パスワードは6文字以上にしてください。'); }
+        else { alert('登録に失敗しました。\n'+(err && err.message ? err.message : '')); }
+      });
+    });
+
+    loginBtn.addEventListener('click', function(){
+      var id = (idInput.value||'').trim();
+      var pw = pwInput.value||'';
+      if(!id || !pw){ alert('IDとパスワードを入力してください。'); return; }
+      fbAuth.signInWithEmailAndPassword(idToEmail(id), pw).catch(function(err){
+        if(err.code==='auth/wrong-password' || err.code==='auth/user-not-found' || err.code==='auth/invalid-credential'){
+          alert('IDまたはパスワードが間違っています。まだ登録していない場合は「新規登録してはじめる」を使ってください。');
+        } else {
+          alert('ログインに失敗しました。\n'+(err && err.message ? err.message : ''));
+        }
+      });
+    });
+  }
+
+  /* ================= ONBOARDING ================= */
+  function renderOnboarding(){
+    var posButtons = ALL_POSITIONS.map(function(p){
+      return '<button class="pos-btn'+(state.position===p?' active':'')+'" data-pos="'+esc(p)+'">'+esc(p)+'</button>';
+    }).join('');
+
+    var yearOptions = '';
+    for(var y=CURRENT_YEAR; y>=2016; y--){ yearOptions += '<option value="'+y+'"'+(state.debutYear==String(y)?' selected':'')+'>'+y+'年</option>'; }
+
+    var previewName = state.name || '(あなたの名前)';
+    var previewPos = state.position || 'ポジション未選択';
+    var previewGroup = state.groupName || '(グループ名未設定)';
+    var canStart = state.name.trim().length>0 && state.position && state.groupName.trim().length>0;
+
+    var teammateBlocks = state.teammateDrafts.map(function(d, idx){
+      var posOptions = ALL_POSITIONS.filter(function(p){ return p!==state.position; }).map(function(p){
+        return '<option value="'+esc(p)+'"'+(d.position===p?' selected':'')+'>'+esc(p)+'</option>';
+      }).join('');
+      var thumbs = d.photos.map(function(url, pIdx){
+        return '<div class="photo-thumb" style="background-image:url('+url+')"><button type="button" class="rm" data-draft-rm-photo="'+idx+'" data-draft-rm-idx="'+pIdx+'">×</button></div>';
+      }).join('');
+      return '<div class="member-block">'+
+        '<div class="m-top">'+
+          '<div class="m-avatar-sm" style="'+(d.photos[0]?avatarStyle(d.photos[0],d.color):'background:'+d.color)+'">'+(d.photos[0]?'':esc(initials(d.name)))+'</div>'+
+          '<input type="text" class="draft-name-input" data-draft-name="'+idx+'" value="'+esc(d.name)+'" maxlength="10" placeholder="メンバー名">'+
+          '<select data-draft-pos="'+idx+'">'+posOptions+'</select>'+
+        '</div>'+
+        '<div class="photo-strip">'+thumbs+'<div class="photo-add-tile" data-draft-add-photo="'+idx+'">＋</div></div>'+
+        '<input type="file" id="draft-file-'+idx+'" accept="image/*">'+
+      '</div>';
+    }).join('');
+
+    var goalCards = GOAL_TYPES.map(function(g){
+      var active = state.pendingGoalType===g.id;
+      return '<div class="goal-type-card'+(active?' active-goal':'')+'" data-pending-goal="'+g.id+'">'+
+        '<div class="goal-title">'+g.emoji+' '+esc(g.label)+(active?' ✓':'')+'</div>'+
+        '<div class="field-hint" style="margin:4px 0 0;">期間: '+g.days+'日 · 達成報酬: '+esc(g.rewardLabel)+'</div>'+
+      '</div>';
+    }).join('');
+
+    return ''+
+    '<div class="phone"><div class="notch"></div><div class="screen">'+
+      '<div class="onboard">'+
+        '<div class="eyebrow">ORBIT · IDOL MODE</div>'+
+        '<h1 class="display">あなたの推し活を、<br>あなた自身で。</h1>'+
+        '<p class="sub">名前・グループ・ポジションを決めて、SNSでファンと繋がろう。設定は後からいつでも変更できます。</p>'+
+
+        '<div class="field-label">アイドルネーム</div>'+
+        '<input type="text" id="in-name" placeholder="例: ソラ" value="'+esc(state.name)+'" maxlength="10">'+
+
+        '<div class="field-label">グループ名</div>'+
+        '<input type="text" id="in-group" placeholder="例: ECLIPSE" value="'+esc(state.groupName)+'" maxlength="16">'+
+
+        '<div class="field-label">グループタイプ</div>'+
+        '<div class="gender-row">'+
+          '<button class="gender-btn'+(state.gender==='girl'?' active':'')+'" data-gender="girl">ガールズグループ</button>'+
+          '<button class="gender-btn'+(state.gender==='boy'?' active':'')+'" data-gender="boy">ボーイズグループ</button>'+
+        '</div>'+
+
+        '<div class="field-label">デビュー年</div>'+
+        '<select id="in-debut">'+yearOptions+'</select>'+
+
+        '<div class="field-label">グループの人数（あなたを含む）</div>'+
+        '<div class="stepper-row">'+
+          '<button type="button" class="stepper-btn" id="btn-group-minus">−</button>'+
+          '<div class="stepper-val" id="group-size-val">'+state.groupSize+'人</div>'+
+          '<button type="button" class="stepper-btn" id="btn-group-plus">＋</button>'+
+        '</div>'+
+
+        '<div class="field-label">あなたのグループ内ポジション</div>'+
+        '<div class="pos-grid">'+posButtons+'</div>'+
+
+        (state.teammateDrafts.length>0 ? (
+          '<div class="field-label">チームメイトの設定</div>'+
+          '<div class="field-hint">名前・ポジション・写真を自由に設定できます</div>'+
+          teammateBlocks
+        ) : '')+
+
+        '<div class="field-label">ひとこと自己紹介（任意）</div>'+
+        '<input type="text" id="in-bio" placeholder="例: 毎日投稿がんばります🌙" value="'+esc(state.bio)+'" maxlength="30">'+
+
+        '<div class="field-label">アイコン画像（任意）</div>'+
+        '<div class="avatar-upload-row">'+
+          '<div class="avatar-circle" id="avatar-preview-circle" style="'+avatarStyle(state.avatarDataUrl, AVATAR_COLORS[0])+'">'+(state.avatarDataUrl?'':esc(initials(state.name)))+'</div>'+
+          '<button type="button" class="upload-btn" id="btn-avatar-pick">写真を選ぶ</button>'+
+          '<input type="file" id="file-avatar" accept="image/*">'+
+        '</div>'+
+
+        '<div class="field-label">目標を設定する（任意）</div>'+
+        '<div class="field-hint">達成できなくてもペナルティはありません。もう一度タップで選択解除できます</div>'+
+        goalCards+
+
+        '<div class="preview-card foil">'+
+          '<div class="badge" id="preview-pos">'+esc(previewPos)+'</div>'+
+          '<div class="pname display" id="preview-name">'+esc(previewName)+'</div>'+
+          '<div class="pgroup" id="preview-group">'+esc(previewGroup)+'</div>'+
+        '</div>'+
+
+        '<button class="primary-btn" id="btn-start" '+(canStart?'':'disabled')+'>SNSデビューする</button>'+
+        '<div class="hint-strip">投稿すると、ファンの反応やメンバーの動きがリアルタイムっぽく動きます</div>'+
+      '</div>'+
+    '</div></div>';
+  }
+
+  function updateStartButtonState(){
+    var btn = document.getElementById('btn-start');
+    if(btn){ btn.disabled = !(state.name.trim().length>0 && state.position && state.groupName.trim().length>0); }
+  }
+
+  function bindOnboarding(){
+    var nameInput = document.getElementById('in-name');
+    nameInput.addEventListener('input', function(e){
+      state.name = e.target.value;
+      var pn = document.getElementById('preview-name'); if(pn) pn.textContent = state.name || '(あなたの名前)';
+      var ap = document.getElementById('avatar-preview-circle');
+      if(ap && !state.avatarDataUrl) ap.textContent = initials(state.name);
+      updateStartButtonState();
+    });
+
+    var groupInput = document.getElementById('in-group');
+    groupInput.addEventListener('input', function(e){
+      state.groupName = e.target.value;
+      var pg = document.getElementById('preview-group'); if(pg) pg.textContent = state.groupName || '(グループ名未設定)';
+      updateStartButtonState();
+    });
+
+    var bioInput = document.getElementById('in-bio');
+    bioInput.addEventListener('input', function(e){ state.bio = e.target.value; });
+
+    document.getElementById('in-debut').addEventListener('change', function(e){ state.debutYear = e.target.value; });
+
+    document.querySelectorAll('.gender-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        state.gender = btn.getAttribute('data-gender');
+        render();
+      });
+    });
+
+    document.getElementById('btn-group-minus').addEventListener('click', function(){
+      if(state.groupSize>1){ state.groupSize--; rebuildTeammateDrafts(); render(); }
+    });
+    document.getElementById('btn-group-plus').addEventListener('click', function(){
+      if(state.groupSize < ALL_POSITIONS.length){ state.groupSize++; rebuildTeammateDrafts(); render(); }
+    });
+
+    document.querySelectorAll('.pos-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        onPlayerPositionChange(btn.getAttribute('data-pos'));
+        render();
+      });
+    });
+
+    document.querySelectorAll('[data-draft-name]').forEach(function(input){
+      input.addEventListener('input', function(e){
+        var idx = parseInt(input.getAttribute('data-draft-name'),10);
+        state.teammateDrafts[idx].name = e.target.value;
+      });
+    });
+
+    document.querySelectorAll('[data-draft-pos]').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        var idx = parseInt(sel.getAttribute('data-draft-pos'),10);
+        onTeammateDraftPositionChange(idx, sel.value);
+        render();
+      });
+    });
+
+    document.querySelectorAll('[data-draft-add-photo]').forEach(function(tile){
+      tile.addEventListener('click', function(){
+        var idx = tile.getAttribute('data-draft-add-photo');
+        document.getElementById('draft-file-'+idx).click();
+      });
+    });
+    state.teammateDrafts.forEach(function(d, idx){
+      var fileEl = document.getElementById('draft-file-'+idx);
+      if(!fileEl) return;
+      fileEl.addEventListener('change', function(e){
+        var file = e.target.files && e.target.files[0];
+        if(!file) return;
+        compressImageFile(file).then(function(dataUrl){
+          if(dataUrl){ d.photos.push(dataUrl); render(); }
+        });
+      });
+    });
+    document.querySelectorAll('[data-draft-rm-photo]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var idx = parseInt(btn.getAttribute('data-draft-rm-photo'),10);
+        var pIdx = parseInt(btn.getAttribute('data-draft-rm-idx'),10);
+        state.teammateDrafts[idx].photos.splice(pIdx,1);
+        render();
+      });
+    });
+
+    document.querySelectorAll('[data-pending-goal]').forEach(function(card){
+      card.addEventListener('click', function(){
+        var id = card.getAttribute('data-pending-goal');
+        state.pendingGoalType = state.pendingGoalType===id ? null : id;
+        render();
+      });
+    });
+
+    var avatarPickBtn = document.getElementById('btn-avatar-pick');
+    var avatarFile = document.getElementById('file-avatar');
+    avatarPickBtn.addEventListener('click', function(){ avatarFile.click(); });
+    avatarFile.addEventListener('change', function(e){
+      var file = e.target.files && e.target.files[0];
+      if(!file) return;
+      compressImageFile(file).then(function(dataUrl){
+        if(!dataUrl) return;
+        state.avatarDataUrl = dataUrl;
+        var ap = document.getElementById('avatar-preview-circle');
+        if(ap){ ap.style.background = 'url('+state.avatarDataUrl+') center/cover'; ap.textContent=''; }
+      });
+    });
+
+    var startBtn = document.getElementById('btn-start');
+    startBtn.addEventListener('click', function(){
+      if(startBtn.disabled) return;
+      state.members = buildMembersFromDrafts();
+      state.screen = 'app';
+      state.sessionStartFollowers = state.followers;
+      if(state.pendingGoalType){ startGoal(state.pendingGoalType); }
+      state.notifications.unshift({ icon:'🎉', time:nowLabel(), html: '<b>ORBIT</b>へようこそ！さっそく最初の投稿をしてみましょう' });
+      render();
+    });
+  }
+
+  /* ================= APP SHELL ================= */
+  function renderApp(){
+    var tabBody = '';
+    if(state.activeTab==='feed') tabBody = renderFeedTab();
+    else if(state.activeTab==='live') tabBody = renderLiveTab();
+    else if(state.activeTab==='notif') tabBody = renderNotifTab();
+    else tabBody = renderProfileTab();
+
+    var avatarStyleStr = avatarStyle(state.avatarDataUrl, AVATAR_COLORS[0]);
+
+    return ''+
+    '<div class="phone"><div class="notch"></div><div class="screen" id="screen-root">'+
+      '<div class="topbar">'+
+        '<div class="brand display"><span class="dot"></span>ORBIT</div>'+
+        '<div class="topbar-right">'+
+          '<button class="dm-icon-btn" id="btn-open-dms">✉️<span class="dm-badge" id="dm-badge" style="display:'+(unreadDMCount()>0?'flex':'none')+';">'+unreadDMCount()+'</span></button>'+
+          '<div class="follower-chip">フォロワー <b id="follower-count">'+fmtFollowers(state.followers)+'</b></div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="profile-header">'+
+        '<div class="avatar" style="'+avatarStyleStr+'">'+(state.avatarDataUrl?'':esc(initials(state.name)))+'</div>'+
+        '<div class="who">'+
+          '<div class="name-row"><span class="nm">'+esc(state.name)+'</span><span class="pos-tag">'+esc(state.position)+'</span></div>'+
+          '<div class="grp">'+esc(state.groupName)+' · '+genderLabel()+' · '+debutLabel()+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="tabs">'+
+        tabBtn('feed','フィード')+ tabBtn('live','配信')+ tabBtn('notif','通知', state.unreadNotif)+ tabBtn('profile','プロフィール')+
+      '</div>'+
+      '<div class="feed-scroll" id="scroll-area">'+tabBody+'</div>'+
+      '<div class="bottom-nav">'+
+        navBtn('feed','📱','フィード')+ navBtn('live','🎥','配信')+ navBtn('notif','🔔','通知', state.unreadNotif)+ navBtn('profile','👤','プロフィール')+
+      '</div>'+
+      (state.composerOpen ? renderComposerOverlay() : '')+
+      (state.viewingMemberName ? renderMemberProfileOverlay() : '')+
+      (state.viewingPostId ? renderPostDetailOverlay() : '')+
+      (state.editingProfile ? renderProfileEditOverlay() : '')+
+      (state.settingGoal ? renderGoalSetOverlay() : '')+
+      (state.viewingStats ? renderStatsOverlay() : '')+
+      (state.viewingDMList ? renderDMListOverlay() : '')+
+      (state.viewingDMId ? renderDMChatOverlay() : '')+
+    '</div></div>';
+  }
+
+  function tabBtn(id,label,count){
+    var badge = count ? '<span class="badge-count">'+count+'</span>' : '';
+    return '<div class="tab'+(state.activeTab===id?' active':'')+'" data-tab="'+id+'">'+label+badge+'</div>';
+  }
+  function navBtn(id,icon,label,count){
+    var dot = count ? '<span class="nav-dot"></span>' : '';
+    return '<div class="nav-item'+(state.activeTab===id?' active':'')+'" data-tab="'+id+'">'+dot+'<span class="ic">'+icon+'</span>'+label+'</div>';
+  }
+
+  /* ---------------- FEED TAB ---------------- */
+  function renderFeedTab(){
+    var advanceBar = '<div class="action-bar" id="btn-advance"><span class="clock">⏱</span>時間を進める（メンバーやファンの動きを見る）</div>';
+    var newPostBar = '<div class="action-bar new-post-bar" id="btn-open-composer"><span class="plus">＋</span>新しい投稿を作成</div>';
+    var postsHtml;
+    if(state.posts.length===0){
+      postsHtml = '<div class="empty-state"><div class="big">🌙</div>投稿はまだありません。<br>最初の投稿でファンにあいさつしよう！</div>';
+    } else {
+      postsHtml = state.posts.map(renderPost).join('');
+    }
+    return advanceBar + newPostBar + postsHtml;
+  }
+
+  function renderPhotoBlock(photo, filter){
+    var filterCss = filter && filter!=='none' ? (FILTERS.filter(function(f){return f.id===filter;})[0]||{}).css : null;
+    if(photo.type==='upload'){
+      return '<div class="post-photo"><img src="'+photo.dataUrl+'" alt=""'+(filterCss?' style="filter:'+filterCss+'"':'')+'></div>';
+    }
+    var moodDef = MOODS.filter(function(m){return m.id===photo.moodId;})[0] || MOODS[0];
+    return '<div class="post-photo foil" style="background:'+moodDef.grad+'">'+moodDef.emoji+'<span class="cap-in-photo">'+moodDef.label+'</span></div>';
+  }
+
+  function renderCommentBlock(post, comment){
+    var isPinned = post.pinnedCommentId === comment.id;
+    var mgmtActions = post.isMine ? (
+      '<button data-action="pin" data-post="'+post.id+'" data-comment="'+comment.id+'">'+(isPinned?'固定を解除':'📌固定')+'</button>'+
+      '<button data-action="reply" data-post="'+post.id+'" data-comment="'+comment.id+'">💬返信</button>'+
+      '<button data-action="delete" data-post="'+post.id+'" data-comment="'+comment.id+'">🗑削除</button>'
+    ) : '';
+    var likeBtn = '<button class="like-btn'+(comment.liked?' liked':'')+'" data-action="like-comment" data-post="'+post.id+'" data-comment="'+comment.id+'">'+(comment.liked?'♥':'♡')+' '+(comment.likes||0)+'</button>';
+    var replyBox = state.replyOpenCommentId===comment.id ? (
+      '<div class="reply-box">'+
+        '<input type="text" id="reply-input-'+comment.id+'" placeholder="返信を書く…" value="'+esc(state.replyDraft)+'" maxlength="60">'+
+        '<button data-action="send-reply" data-post="'+post.id+'" data-comment="'+comment.id+'">送信</button>'+
+      '</div>'
+    ) : '';
+    return '<div class="comment-block'+(isPinned?' pinned':'')+'">'+
+      (isPinned?'<span class="pin-flag">📌 固定されたコメント</span>':'')+
+      '<div class="comment'+(comment.ai?' ai-tag':'')+(comment.isReply?' reply':'')+'"><b>'+esc(comment.user)+'</b> '+esc(comment.text)+'</div>'+
+      '<div class="comment-actions">'+likeBtn+mgmtActions+'</div>'+
+      replyBox +
+    '</div>';
+  }
+
+  function renderPost(post, opts){
+    opts = opts || {};
+    var avatarStyleStr = post.avatarDataUrl ? avatarStyle(post.avatarDataUrl, post.color) : 'background:'+post.color;
+    var ordered = post.comments.slice();
+    if(post.pinnedCommentId){
+      ordered.sort(function(a,b){
+        if(a.id===post.pinnedCommentId) return -1;
+        if(b.id===post.pinnedCommentId) return 1;
+        return 0;
+      });
+    }
+    var commentsHtml = ordered.map(function(c){ return renderCommentBlock(post, c); }).join('');
+    var clickAttr = post.isMine ? '' : ' data-open-member="'+esc(post.name)+'"';
+    var pinBtn = post.isMine ? ('<button class="pin-profile-btn" data-action="pin-profile" data-post="'+post.id+'">'+(post.pinnedToProfile?'📌 プロフィール固定を解除':'📌 プロフィールに固定')+'</button>') : '';
+
+    var expanded = !!opts.expanded || !!post._commentsExpanded;
+    var previewComment = ordered[0];
+    var previewHtml = previewComment ? ('<div class="comment-preview" id="cprev-'+post.id+'"><b>'+esc(previewComment.user)+'</b>'+esc(previewComment.text)+'</div>') : '<div class="comment-preview" id="cprev-'+post.id+'"></div>';
+    var toggleLabel = post.comments.length>1 ? ('コメント'+post.comments.length+'件をすべて見る') : (post.comments.length===1 ? '' : '');
+    var toggleHtml = toggleLabel ? '<div class="view-comments-link" data-action="toggle-comments" data-post="'+post.id+'" id="ctoggle-'+post.id+'">'+toggleLabel+'</div>' : '<div class="view-comments-link" data-action="toggle-comments" data-post="'+post.id+'" id="ctoggle-'+post.id+'" style="display:none;"></div>';
+
+    return ''+
+    '<div class="post" data-post-id="'+post.id+'">'+
+      '<div class="post-head"'+clickAttr+'>'+
+        '<div class="post-avatar" style="'+avatarStyleStr+'">'+(post.avatarDataUrl?'':esc(initials(post.name)))+'</div>'+
+        '<div class="meta">'+
+          '<div class="nm">'+esc(post.name)+' <span class="pos-tag">'+esc(post.position)+'</span></div>'+
+        '</div>'+
+      '</div>'+
+      renderPhotoBlock(post.photo, post.filter)+
+      '<div class="post-actions">'+
+        '<button class="action-icon like-icon'+(post.liked?' liked':'')+'" data-action="toggle-post-like" data-post="'+post.id+'">'+(post.liked?'♥':'♡')+'</button>'+
+        '<button class="action-icon" data-action="toggle-comments" data-post="'+post.id+'">💬</button>'+
+        '<button class="action-icon" disabled style="opacity:0.55; cursor:default;">➤</button>'+
+        '<button class="action-icon spacer'+(post.saved?' liked':'')+'" data-action="toggle-save" data-post="'+post.id+'">'+(post.saved?'🔖':'📑')+'</button>'+
+      '</div>'+
+      '<div class="likes-text" id="likes-'+post.id+'">'+post.likes.toLocaleString()+'件のいいね</div>'+
+      '<div class="caption-line"><b>'+esc(post.name)+'</b><span id="caption-'+post.id+'">'+linkifyCaption(post.caption)+'</span></div>'+
+      previewHtml+
+      toggleHtml+
+      '<div class="comments'+(expanded?' open':'')+'" id="comments-'+post.id+'">'+commentsHtml+'</div>'+
+      '<div class="post-time">'+esc(post.time)+'</div>'+
+      pinBtn+
+    '</div>';
+  }
+
+  function toggleCommentsOpen(post){
+    post._commentsExpanded = !post._commentsExpanded;
+    render();
+  }
+
+  /* ---------------- NOTIF TAB ---------------- */
+  function renderNotifTab(){
+    if(state.notifications.length===0){ return '<div class="empty-state"><div class="big">🔔</div>通知はまだありません。</div>'; }
+    return state.notifications.map(function(n){
+      return '<div class="notif-item"><div class="n-avatar">'+n.icon+'</div><div><div class="n-text">'+n.html+'</div><div class="n-time">'+n.time+'</div></div></div>';
+    }).join('');
+  }
+
+  /* ---------------- GRID HELPERS ---------------- */
+  function renderPostGridTile(post){
+    var inner;
+    if(post.photo.type==='upload'){ inner = '<img src="'+post.photo.dataUrl+'" alt="">'; }
+    else { var m = MOODS.filter(function(x){return x.id===post.photo.moodId;})[0]||MOODS[0]; inner = '<div class="grid-tile-mood" style="background:'+m.grad+'">'+m.emoji+'</div>'; }
+    var pinBadge = post.pinnedToProfile ? '<span class="pin-badge">📌</span>' : '';
+    return '<div class="grid-tile" data-view-post="'+post.id+'">'+pinBadge+inner+'</div>';
+  }
+  function renderPostGrid(posts){
+    if(posts.length===0){ return '<div class="empty-state" style="padding:24px 10px;"><div class="big">📷</div>まだ投稿がありません</div>'; }
+    var pinned = posts.filter(function(p){ return p.pinnedToProfile; }).sort(function(a,b){ return (b.pinnedAt||0)-(a.pinnedAt||0); });
+    var rest = posts.filter(function(p){ return !p.pinnedToProfile; });
+    var ordered = pinned.concat(rest);
+    return '<div class="post-grid">'+ordered.map(renderPostGridTile).join('')+'</div>';
+  }
+
+  /* ---------------- PROFILE TAB ---------------- */
+  function renderProfileTab(){
+    var myPosts = state.posts.filter(function(p){ return p.isMine; });
+    var totalLikes = state.posts.reduce(function(sum,p){return sum+p.likes;},0);
+    var youAvatarStyleStr = avatarStyle(state.avatarDataUrl, AVATAR_COLORS[0]);
+    var bannerStyle = state.backgroundDataUrl
+      ? 'background-image:url('+state.backgroundDataUrl+')'
+      : 'background:linear-gradient(135deg,'+AVATAR_COLORS[1]+','+AVATAR_COLORS[0]+')';
+
+    var membersHtml = state.members.map(function(m, idx){
+      var thumbs = m.photos.map(function(url, pIdx){
+        return '<div class="photo-thumb" style="background-image:url('+url+')"><button type="button" class="rm" data-prm-member="'+idx+'" data-prm-idx="'+pIdx+'">×</button></div>';
+      }).join('');
+      var posOptions = ALL_POSITIONS.filter(function(p){ return p!==state.position; }).map(function(p){
+        return '<option value="'+esc(p)+'"'+(m.position===p?' selected':'')+'>'+esc(p)+'</option>';
+      }).join('');
+      return '<div class="member-block">'+
+        '<div class="m-top">'+
+          '<div class="m-avatar-sm" data-open-member="'+esc(m.name)+'" style="cursor:pointer; '+(m.avatarDataUrl?avatarStyle(m.avatarDataUrl,m.color):'background:'+m.color)+'">'+(m.avatarDataUrl?'':esc(initials(m.name)))+'</div>'+
+          '<input type="text" class="draft-name-input" data-member-name="'+idx+'" value="'+esc(m.name)+'" maxlength="10">'+
+          '<select data-member-pos="'+idx+'">'+posOptions+'</select>'+
+        '</div>'+
+        '<div class="photo-strip">'+thumbs+'<div class="photo-add-tile" data-padd-member="'+idx+'">＋</div></div>'+
+        '<input type="file" id="pfile-'+idx+'" accept="image/*">'+
+        '<div class="member-row-actions">'+
+          '<button type="button" class="chev-link" data-open-member="'+esc(m.name)+'">投稿を見る ›</button>'+
+          '<button type="button" class="remove-member-btn" data-remove-member="'+idx+'">－ このメンバーを削除</button>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    var addMemberBtn = state.members.length < ALL_POSITIONS.length-1
+      ? '<button type="button" class="edit-profile-btn" id="btn-add-member" style="margin-top:10px;">＋ メンバーを追加</button>'
+      : '';
+
+    return ''+
+    '<div class="profile-tab">'+
+      '<div class="profile-banner" style="'+bannerStyle+'"><button class="banner-edit-btn" id="btn-edit-profile">✏️ プロフィールを編集</button></div>'+
+      '<div class="profile-top">'+
+        '<div class="avatar-lg" id="profile-avatar-lg" style="'+youAvatarStyleStr+'">'+(state.avatarDataUrl?'':esc(initials(state.name)))+'</div>'+
+        '<div>'+
+          '<div style="font-weight:700; font-size:15px;">'+esc(state.name)+'</div>'+
+          '<div style="font-size:11px; color:var(--text-dim);">'+esc(state.groupName)+' · '+esc(state.position)+'</div>'+
+          (state.bio ? '<div style="font-size:11.5px; color:var(--text); margin-top:3px;">'+esc(state.bio)+'</div>' : '')+
+        '</div>'+
+      '</div>'+
+      '<div class="stat-grid">'+
+        '<div class="stat-box"><div class="v">'+fmtFollowers(state.followers)+'</div><div class="l">フォロワー</div></div>'+
+        '<div class="stat-box"><div class="v">'+state.posts.length+'</div><div class="l">投稿数</div></div>'+
+        '<div class="stat-box"><div class="v">'+totalLikes+'</div><div class="l">総いいね</div></div>'+
+      '</div>'+
+      '<button class="edit-profile-btn" id="btn-view-stats" style="margin-top:0;">📊 統計・人気投稿ランキングを見る</button>'+
+      '<div class="section-title">殿堂ランク</div>'+
+      renderAwardTierCard()+
+      '<div class="section-title">今の目標</div>'+
+      renderGoalCard()+
+      '<div class="section-title">あなたの投稿</div>'+
+      renderPostGrid(myPosts)+
+      '<div class="section-title" style="margin-top:22px;">'+esc(state.groupName)+'（'+genderLabel()+'・'+debutLabel()+'）メンバー</div>'+
+      '<div class="field-hint">メンバー名や担当ポジションもここで編集できます。アイコンをタップすると投稿一覧が見られます</div>'+
+      membersHtml +
+      addMemberBtn +
+    '</div>';
+  }
+
+  /* ---------------- GOAL CARD & OVERLAY ---------------- */
+  function renderGoalCard(){
+    if(!state.goal){
+      return '<div class="goal-card">'+
+        '<div class="goal-empty">🎯 まだ目標が設定されていません。カムバックや授賞式に向けてフォロワーを伸ばそう！</div>'+
+        '<button class="edit-profile-btn" id="btn-set-goal" style="margin-top:10px;">目標を設定する</button>'+
+      '</div>';
+    }
+    var g = state.goal;
+    var pct = goalProgressPercent();
+    var achieved = state.followers >= g.targetFollowers;
+    var daysLeft = goalDaysLeft();
+    var expired = !achieved && daysLeft<=0;
+    var countdownBadge = (!achieved && !expired) ? ('<span class="goal-countdown">⏳ 残り'+daysLeft+'日</span>') : '';
+
+    var statusHtml;
+    if(achieved){
+      statusHtml = '<div class="goal-achieved">🎉 目標達成！</div>'+
+        (g.claimedReward
+          ? '<div class="field-hint" style="margin:6px 0 0;">報酬「'+esc(g.rewardLabel)+'」を受け取り済みです</div>'
+          : '<button class="edit-profile-btn" id="btn-claim-goal" style="margin-top:10px;">🎁 報酬を受け取る（'+esc(g.rewardLabel)+'）</button>');
+    } else if(expired){
+      statusHtml = '<div class="field-hint">期限が過ぎました（ペナルティはありません）</div>'+
+        '<button class="edit-profile-btn" id="btn-set-goal" style="margin-top:10px;">新しい目標を設定する</button>';
+    } else {
+      statusHtml = '<div class="field-hint">目標 '+fmtFollowers(g.targetFollowers)+'人まで あと'+fmtFollowers(Math.max(0,g.targetFollowers-state.followers))+'人</div>'+
+        '<button class="change-avatar-btn" id="btn-set-goal" style="margin-top:8px;">目標を変更する</button>';
+    }
+
+    return '<div class="goal-card">'+
+      '<div class="goal-title-row"><div class="goal-title">'+g.emoji+' '+esc(g.label)+'</div>'+countdownBadge+'</div>'+
+      '<div class="goal-bar-track"><div class="goal-bar-fill" style="width:'+pct.toFixed(1)+'%;"></div></div>'+
+      '<div class="goal-nums"><span>'+fmtFollowers(state.followers)+'人</span><span>'+fmtFollowers(g.targetFollowers)+'人</span></div>'+
+      statusHtml+
+    '</div>';
+  }
+
+  function renderGoalSetOverlay(){
+    var cards = GOAL_TYPES.map(function(g){
+      var target = Math.round(state.followers * g.multiplier);
+      return '<div class="goal-type-card" data-goal-type="'+g.id+'">'+
+        '<div class="goal-title">'+g.emoji+' '+esc(g.label)+'</div>'+
+        '<div class="field-hint" style="margin:4px 0 0;">期間: '+g.days+'日 · 目標フォロワー: '+fmtFollowers(target)+'人</div>'+
+        '<div class="field-hint" style="margin:2px 0 0;">達成報酬: '+esc(g.rewardLabel)+'</div>'+
+      '</div>';
+    }).join('');
+    return ''+
+    '<div class="composer-overlay layer4">'+
+      '<div class="overlay-topbar">'+
+        '<button class="ot-btn" id="btn-goal-close">キャンセル</button>'+
+        '<div class="ot-title">目標を設定</div>'+
+        '<div style="width:52px;"></div>'+
+      '</div>'+
+      '<div class="overlay-body">'+
+        '<div class="pick-hint">期限までにフォロワーを伸ばそう。達成できなくてもペナルティはありません。</div>'+
+        cards+
+      '</div>'+
+    '</div>';
+  }
+
+  /* ---------------- STATS OVERLAY ---------------- */
+  function renderStatsOverlay(){
+    var todayGrowth = state.followers - state.sessionStartFollowers;
+    var ranked = state.posts.slice().sort(function(a,b){ return b.likes-a.likes; }).slice(0,8);
+    var rankHtml = ranked.map(function(p, idx){
+      var avStyle = p.avatarDataUrl ? avatarStyle(p.avatarDataUrl,p.color) : 'background:'+p.color;
+      return '<div class="rank-row" data-view-post="'+p.id+'">'+
+        '<div class="rank-num">'+(idx+1)+'</div>'+
+        '<div class="m-avatar" style="'+avStyle+'">'+(p.avatarDataUrl?'':esc(initials(p.name)))+'</div>'+
+        '<div class="rank-mid"><div class="rank-name">'+esc(p.name)+'</div><div class="rank-caption">'+esc((p.caption||'').slice(0,20))+'</div></div>'+
+        '<div class="rank-likes">♥ '+p.likes+'</div>'+
+      '</div>';
+    }).join('');
+    return ''+
+    '<div class="composer-overlay layer4">'+
+      '<div class="overlay-topbar">'+
+        '<button class="ot-btn" id="btn-stats-close">戻る</button>'+
+        '<div class="ot-title">統計</div>'+
+        '<div style="width:52px;"></div>'+
+      '</div>'+
+      '<div class="overlay-body">'+
+        '<div class="stat-grid">'+
+          '<div class="stat-box"><div class="v">'+fmtFollowers(state.followers)+'</div><div class="l">総フォロワー</div></div>'+
+          '<div class="stat-box"><div class="v">+'+fmtFollowers(Math.max(0,todayGrowth))+'</div><div class="l">今日の増加数</div></div>'+
+          '<div class="stat-box"><div class="v">'+state.posts.length+'</div><div class="l">投稿数</div></div>'+
+        '</div>'+
+        '<div class="section-title">人気投稿ランキング</div>'+
+        (ranked.length ? rankHtml : '<div class="empty-state" style="padding:24px 10px;">まだ投稿がありません</div>')+
+      '</div>'+
+    '</div>';
+  }
+
+  /* ---------------- DM OVERLAYS ---------------- */
+  function renderDMListOverlay(){
+    var rows = state.dms.map(function(conv){
+      var last = conv.messages[conv.messages.length-1];
+      var preview = last ? (last.from==='me' ? 'あなた: '+last.text : last.text) : '';
+      return '<div class="dm-list-row" data-open-dm="'+conv.id+'">'+
+        '<div class="m-avatar" style="background:'+conv.color+'">'+esc(initials(conv.fanName))+'</div>'+
+        '<div class="dm-list-mid"><div class="dm-list-name">'+esc(conv.fanName)+(conv.unread?' <span class="dm-unread-dot"></span>':'')+'</div>'+
+          '<div class="dm-list-preview">'+esc(preview)+'</div></div>'+
+      '</div>';
+    }).join('');
+    return ''+
+    '<div class="composer-overlay layer4">'+
+      '<div class="overlay-topbar">'+
+        '<button class="ot-btn" id="btn-dmlist-close">閉じる</button>'+
+        '<div class="ot-title">メッセージ</div>'+
+        '<div style="width:52px;"></div>'+
+      '</div>'+
+      '<div class="overlay-body">'+
+        (state.dms.length ? rows : '<div class="empty-state"><div class="big">✉️</div>まだメッセージはありません。<br>「時間を進める」を押すと届くことがあります。</div>')+
+      '</div>'+
+    '</div>';
+  }
+
+  function renderDMChatOverlay(){
+    var conv = findDM(state.viewingDMId);
+    if(!conv) return '';
+    var bubbles = conv.messages.map(renderDMBubble).join('');
+    return ''+
+    '<div class="composer-overlay layer4">'+
+      '<div class="overlay-topbar">'+
+        '<button class="ot-btn" id="btn-dmchat-back">戻る</button>'+
+        '<div class="ot-title">'+esc(conv.fanName)+'</div>'+
+        '<div style="width:52px;"></div>'+
+      '</div>'+
+      '<div class="dm-thread" id="dm-thread-'+conv.id+'">'+bubbles+'</div>'+
+      '<div class="dm-input-row">'+
+        '<input type="text" id="dm-input-'+conv.id+'" placeholder="返信を書く…" maxlength="120">'+
+        '<button id="btn-dm-send" data-dm-send="'+conv.id+'">送信</button>'+
+      '</div>'+
+    '</div>';
+  }
+
+  /* ---------------- PROFILE EDIT OVERLAY ---------------- */
+  function renderProfileEditOverlay(){
+    var yearOptions = '';
+    for(var y=CURRENT_YEAR; y>=2016; y--){ yearOptions += '<option value="'+y+'"'+(state.debutYear==String(y)?' selected':'')+'>'+y+'年</option>'; }
+    var bannerStyle = state.backgroundDataUrl
+      ? 'background-image:url('+state.backgroundDataUrl+')'
+      : 'background:linear-gradient(135deg,'+AVATAR_COLORS[1]+','+AVATAR_COLORS[0]+')';
+
+    return ''+
+    '<div class="composer-overlay layer4">'+
+      '<div class="overlay-topbar">'+
+        '<div style="width:52px;"></div>'+
+        '<div class="ot-title">プロフィールを編集</div>'+
+        '<button class="ot-btn ot-share" id="btn-profile-edit-done">完了</button>'+
+      '</div>'+
+      '<div class="overlay-body">'+
+        '<div class="field-label">背景画像</div>'+
+        '<div class="edit-banner-preview" id="edit-banner-preview" style="'+bannerStyle+'"></div>'+
+        '<button type="button" class="upload-btn small" id="btn-banner-pick">画像を選ぶ</button>'+
+        '<input type="file" id="file-banner" accept="image/*">'+
+
+        '<div class="field-label">アイコン画像</div>'+
+        '<div class="avatar-upload-row">'+
+          '<div class="avatar-circle" id="edit-avatar-preview" style="'+avatarStyle(state.avatarDataUrl, AVATAR_COLORS[0])+'">'+(state.avatarDataUrl?'':esc(initials(state.name)))+'</div>'+
+          '<button type="button" class="upload-btn small" id="btn-edit-avatar-pick">写真を選ぶ</button>'+
+          '<input type="file" id="file-edit-avatar" accept="image/*">'+
+        '</div>'+
+
+        '<div class="field-label">アイドルネーム</div>'+
+        '<input type="text" id="edit-name" value="'+esc(state.name)+'" maxlength="10">'+
+
+        '<div class="field-label">グループ名</div>'+
+        '<input type="text" id="edit-group" value="'+esc(state.groupName)+'" maxlength="16">'+
+
+        '<div class="field-label">デビュー年</div>'+
+        '<select id="edit-debut">'+yearOptions+'</select>'+
+
+        '<div class="field-label">自己紹介</div>'+
+        '<input type="text" id="edit-bio" value="'+esc(state.bio)+'" maxlength="40">'+
+
+        '<div class="field-hint" style="margin-top:22px;">ID「'+esc(state.userDisplayName||'')+'」にデータが保存されています。写真も含めて、同じIDでログインすればどの端末からでも続きから始められます。</div>'+
+        '<button type="button" class="upload-btn small" id="btn-logout" style="margin-top:8px;">ログアウト</button>'+
+        '<button type="button" class="upload-btn small" id="btn-reset-data" style="margin-top:8px; color:#ff2d55; border-color:#ff2d55;">🗑 データをリセットして最初からやり直す</button>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function bindProfileEditOverlay(){
+    document.getElementById('btn-profile-edit-done').addEventListener('click', function(){ state.editingProfile=false; render(); });
+    document.getElementById('btn-reset-data').addEventListener('click', resetAllData);
+    document.getElementById('btn-logout').addEventListener('click', function(){ state.editingProfile=false; signOutUser(); });
+
+    document.getElementById('edit-name').addEventListener('input', function(e){ state.name = e.target.value; });
+    document.getElementById('edit-group').addEventListener('input', function(e){ state.groupName = e.target.value; });
+    document.getElementById('edit-bio').addEventListener('input', function(e){ state.bio = e.target.value; });
+    document.getElementById('edit-debut').addEventListener('change', function(e){ state.debutYear = e.target.value; });
+
+    document.getElementById('btn-banner-pick').addEventListener('click', function(){ document.getElementById('file-banner').click(); });
+    document.getElementById('file-banner').addEventListener('change', function(e){
+      var file = e.target.files && e.target.files[0];
+      if(!file) return;
+      compressImageFile(file, 1600, 0.75).then(function(dataUrl){
+        if(!dataUrl) return;
+        state.backgroundDataUrl = dataUrl;
+        var pv = document.getElementById('edit-banner-preview');
+        if(pv){ pv.style.background = 'url('+state.backgroundDataUrl+') center/cover'; }
+      });
+    });
+
+    document.getElementById('btn-edit-avatar-pick').addEventListener('click', function(){ document.getElementById('file-edit-avatar').click(); });
+    document.getElementById('file-edit-avatar').addEventListener('change', function(e){
+      var file = e.target.files && e.target.files[0];
+      if(!file) return;
+      compressImageFile(file).then(function(dataUrl){
+        if(!dataUrl) return;
+        state.avatarDataUrl = dataUrl;
+        var ap = document.getElementById('edit-avatar-preview');
+        if(ap){ ap.style.background = 'url('+state.avatarDataUrl+') center/cover'; ap.textContent=''; }
+      });
+    });
+  }
+
+  /* ---------------- MEMBER PROFILE OVERLAY ---------------- */
+  function renderMemberProfileOverlay(){
+    var m = state.members.filter(function(x){ return x.name===state.viewingMemberName; })[0];
+    if(!m){ return ''; }
+    var memberPosts = state.posts.filter(function(p){ return p.name===m.name; });
+    var totalLikes = memberPosts.reduce(function(s,p){return s+p.likes;},0);
+    return ''+
+    '<div class="composer-overlay layer2">'+
+      '<div class="overlay-topbar">'+
+        '<button class="ot-btn" id="btn-memberprofile-back">戻る</button>'+
+        '<div class="ot-title">'+esc(m.name)+'のプロフィール</div>'+
+        '<div style="width:52px;"></div>'+
+      '</div>'+
+      '<div class="overlay-body">'+
+        '<div class="member-overlay-top">'+
+          '<div class="avatar-lg" style="'+(m.avatarDataUrl?avatarStyle(m.avatarDataUrl,m.color):'background:'+m.color)+'">'+(m.avatarDataUrl?'':esc(initials(m.name)))+'</div>'+
+          '<div><div style="font-weight:700; font-size:16px;">'+esc(m.name)+'</div><div class="pos-tag" style="display:inline-block; margin-top:4px;">'+esc(m.position)+'</div></div>'+
+        '</div>'+
+        '<div class="stat-grid">'+
+          '<div class="stat-box"><div class="v">'+memberPosts.length+'</div><div class="l">投稿数</div></div>'+
+          '<div class="stat-box"><div class="v">'+totalLikes+'</div><div class="l">総いいね</div></div>'+
+          '<div class="stat-box"><div class="v">'+m.photos.length+'</div><div class="l">保有写真</div></div>'+
+        '</div>'+
+        '<div class="section-title">投稿</div>'+
+        renderPostGrid(memberPosts)+
+      '</div>'+
+    '</div>';
+  }
+
+  /* ---------------- POST DETAIL OVERLAY ---------------- */
+  function renderPostDetailOverlay(){
+    var post = findPost(state.viewingPostId);
+    if(!post){ return ''; }
+    return ''+
+    '<div class="composer-overlay layer3">'+
+      '<div class="overlay-topbar">'+
+        '<button class="ot-btn" id="btn-postdetail-back">戻る</button>'+
+        '<div class="ot-title">投稿</div>'+
+        '<div style="width:52px;"></div>'+
+      '</div>'+
+      '<div class="overlay-body">'+renderPost(post, {expanded:true})+'</div>'+
+    '</div>';
+  }
+
+  /* ---------------- LIVE TAB ---------------- */
+  function renderLiveTab(){
+    if(state.liveSummary){
+      var s = state.liveSummary;
+      return ''+
+      '<div class="live-summary">'+
+        '<div style="font-size:38px;">🎉</div>'+
+        '<h3>配信おつかれさまでした！</h3>'+
+        '<div class="sub">たくさんのファンが見に来てくれました</div>'+
+        '<div class="summary-stats">'+
+          '<div class="stat-box"><div class="v">'+fmtFollowers(s.peakViewers)+'</div><div class="l">最高視聴者数</div></div>'+
+          '<div class="stat-box"><div class="v">'+s.duration+'</div><div class="l">配信時間</div></div>'+
+          '<div class="stat-box"><div class="v">+'+fmtFollowers(s.followersGained)+'</div><div class="l">獲得フォロワー</div></div>'+
+        '</div>'+
+        '<button class="primary-btn" id="btn-post-screenshot" style="margin-top:0;">配信のワンシーンを投稿する</button>'+
+        '<button class="close-summary-btn" id="btn-close-summary">閉じる</button>'+
+      '</div>';
+    }
+    if(!state.liveActive){
+      return ''+
+      '<div class="live-idle">'+
+        '<div class="big-emoji">🎥</div>'+
+        '<h3>ライブ配信を始めよう</h3>'+
+        '<p>カメラを使ってファンと繋がれます（映像はこの端末内だけで再生され、どこにも送信されません）。カメラが使えない場合は演出映像になります。</p>'+
+        '<button class="live-start-btn" id="btn-start-live">🔴 配信を開始する</button>'+
+      '</div>';
+    }
+    var elapsed = Math.floor((Date.now()-state.liveStartTime)/1000);
+    var mm = String(Math.floor(elapsed/60)).padStart(2,'0');
+    var ss = String(elapsed%60).padStart(2,'0');
+    var commentLines = state.liveComments.slice(-8).map(function(c){
+      return '<div class="live-comment-line"><b>'+esc(c.user)+'</b> '+esc(c.text)+'</div>';
+    }).join('');
+
+    var noCamMsg;
+    if(state.liveCamErrorType==='NotAllowedError'){
+      noCamMsg = '🚫 カメラの使用が許可されていません<br>アドレスバー付近のカメラアイコン、またはブラウザの「サイトの設定」からカメラを許可してください<br><button type="button" class="retry-btn" id="btn-retry-cam">🔁 もう一度試す</button>';
+    } else if(state.liveCamErrorType==='NotFoundError'){
+      noCamMsg = '🎥 カメラが見つかりませんでした<br>この端末にカメラが接続されていないようです<br><button type="button" class="retry-btn" id="btn-retry-cam">🔁 もう一度試す</button>';
+    } else if(state.liveCamDenied){
+      noCamMsg = '🎥 この画面ではカメラを使用できません<br>プレビュー表示中の場合、セキュリティ上カメラ許可が求められないことがあります<br>ダウンロードしたファイルを直接ブラウザのタブで開いて試してみてください<br><button type="button" class="retry-btn" id="btn-retry-cam">🔁 もう一度試す</button>';
+    } else {
+      noCamMsg = '🎥 配信映像（プレビュー演出）';
+    }
+
+    return ''+
+    '<div class="live-stage" id="live-stage">'+
+      '<video id="live-video" autoplay playsinline muted></video>'+
+      '<div class="live-noCam" id="live-noCam" style="display:none;"><div class="dotpulse"></div><div>'+noCamMsg+'</div></div>'+
+      '<div class="live-badge"><span class="reddot"></span>LIVE <span id="live-timer">'+mm+':'+ss+'</span></div>'+
+      '<div class="live-viewer-chip">👁 <span id="live-viewer-count">'+fmtFollowers(state.liveViewers)+'</span></div>'+
+      '<div class="live-comments-scroll" id="live-comments-scroll">'+commentLines+'</div>'+
+    '</div>'+
+    '<div class="live-controls"><button class="live-end-btn" id="btn-end-live">配信を終了する</button></div>';
+  }
+
+  /* ---------------- IG-style composer overlay ---------------- */
+  function renderComposerOverlay(){
+    if(state.composerStep==='pick'){
+      var tiles = MOODS.map(function(m){
+        return '<div class="template-tile" data-mood="'+m.id+'" style="background:'+m.grad+'">'+m.emoji+'</div>';
+      }).join('');
+      return ''+
+      '<div class="composer-overlay">'+
+        '<div class="overlay-topbar">'+
+          '<button class="ot-btn" id="btn-composer-close">キャンセル</button>'+
+          '<div class="ot-title">新規投稿</div>'+
+          '<div style="width:52px;"></div>'+
+        '</div>'+
+        '<div class="overlay-body">'+
+          '<div class="pick-hint">写真を選んでください。実際のアルバムから選ぶか、テンプレートから選べます。</div>'+
+          '<button type="button" class="album-btn" id="btn-pick-album">📷 アルバムから選ぶ</button>'+
+          '<input type="file" id="file-post-photo" accept="image/*">'+
+          '<div class="template-label">テンプレートから選ぶ</div>'+
+          '<div class="template-grid">'+tiles+'</div>'+
+        '</div>'+
+      '</div>';
+    }
+
+    var photoHtml;
+    if(state.composerImage.type==='upload'){
+      var fdef = FILTERS.filter(function(f){return f.id===state.composerFilter;})[0] || FILTERS[0];
+      photoHtml = '<div class="ig-photo-wrap"><img id="composer-preview-img" src="'+state.composerImage.dataUrl+'" alt="" style="filter:'+fdef.css+'"></div>';
+    } else {
+      var moodDef = MOODS.filter(function(m){return m.id===state.composerImage.moodId;})[0];
+      photoHtml = '<div class="ig-photo-wrap" style="background:'+moodDef.grad+'">'+moodDef.emoji+'</div>';
+    }
+    var avatarStyleStr = avatarStyle(state.avatarDataUrl, AVATAR_COLORS[0]);
+
+    var filterRow = '';
+    if(state.composerImage.type==='upload'){
+      filterRow = '<div class="filter-row">'+FILTERS.map(function(f){
+        return '<div class="filter-chip'+(state.composerFilter===f.id?' active':'')+'" data-filter="'+f.id+'">'+f.label+'</div>';
+      }).join('')+'</div>';
+    }
+
+    var hashtagRow = '<div class="hashtag-row">'+HASHTAG_POOL.map(function(h){
+      return '<div class="hashtag-chip" data-tag="'+esc(h)+'">'+esc(h)+'</div>';
+    }).join('')+'</div>';
+
+    return ''+
+    '<div class="composer-overlay">'+
+      '<div class="overlay-topbar">'+
+        '<button class="ot-btn" id="btn-composer-back">戻る</button>'+
+        '<div class="ot-title">キャプションを追加</div>'+
+        '<button class="ot-btn ot-share" id="btn-composer-share">シェア</button>'+
+      '</div>'+
+      '<div class="overlay-body">'+
+        photoHtml + filterRow +
+        '<div class="ig-who-row"><div class="av" style="'+avatarStyleStr+'">'+(state.avatarDataUrl?'':esc(initials(state.name)))+'</div><div class="nm">'+esc(state.name)+'</div>'+
+          '<button type="button" class="auto-caption-btn" id="btn-auto-caption">✨ 自動生成</button>'+
+        '</div>'+
+        '<textarea id="composer-text" rows="4" placeholder="キャプションを書く…" maxlength="140">'+esc(state.composerText)+'</textarea>'+
+        '<div class="char-count" id="char-count">'+state.composerText.length+' / 140</div>'+
+        hashtagRow +
+        (state.composerImage.type==='upload' ? '<div class="ai-note"><span class="ic">✨</span>投稿すると、この写真をAIが見て内容に合ったファンコメントを生成します（対応していない環境では通常のコメントが表示されます）。</div>' : '')+
+      '</div>'+
+    '</div>';
+  }
+
+  /* ---------------- bind app events ---------------- */
+  function bindApp(){
+    document.querySelectorAll('[data-tab]').forEach(function(el){
+      el.addEventListener('click', function(){
+        state.activeTab = el.getAttribute('data-tab');
+        if(state.activeTab==='notif'){ state.unreadNotif = 0; }
+        render();
+      });
+    });
+
+    if(state.activeTab==='feed' && !state.composerOpen){
+      var openBtn = document.getElementById('btn-open-composer');
+      if(openBtn) openBtn.addEventListener('click', function(){
+        state.composerOpen = true; state.composerStep='pick'; state.composerImage=null; state.composerText=''; state.composerFilter='none';
+        render();
+      });
+      var advBtn = document.getElementById('btn-advance');
+      if(advBtn) advBtn.addEventListener('click', advanceTime);
+    }
+
+    document.querySelectorAll('[data-action]').forEach(function(btn){
+      btn.addEventListener('click', function(){ handleCommentAction(btn); });
+    });
+
+    document.querySelectorAll('[data-open-member]').forEach(function(el){
+      el.addEventListener('click', function(){
+        state.viewingMemberName = el.getAttribute('data-open-member');
+        render();
+      });
+    });
+
+    document.querySelectorAll('[data-view-post]').forEach(function(el){
+      el.addEventListener('click', function(){
+        state.viewingPostId = el.getAttribute('data-view-post');
+        render();
+      });
+    });
+
+    if(state.activeTab==='profile'){
+      var editBtn = document.getElementById('btn-edit-profile');
+      if(editBtn) editBtn.addEventListener('click', function(){ state.editingProfile = true; render(); });
+
+      var statsBtn = document.getElementById('btn-view-stats');
+      if(statsBtn) statsBtn.addEventListener('click', function(){ state.viewingStats = true; render(); });
+
+      var setGoalBtn = document.getElementById('btn-set-goal');
+      if(setGoalBtn) setGoalBtn.addEventListener('click', function(){ state.settingGoal = true; render(); });
+
+      var claimBtn = document.getElementById('btn-claim-goal');
+      if(claimBtn) claimBtn.addEventListener('click', function(){ state.goal.claimedReward = true; render(); });
+
+      document.querySelectorAll('[data-padd-member]').forEach(function(tile){
+        tile.addEventListener('click', function(e){
+          e.stopPropagation();
+          var idx = tile.getAttribute('data-padd-member');
+          document.getElementById('pfile-'+idx).click();
+        });
+      });
+      state.members.forEach(function(m, idx){
+        var fileEl = document.getElementById('pfile-'+idx);
+        if(!fileEl) return;
+        fileEl.addEventListener('change', function(e){
+          var file = e.target.files && e.target.files[0];
+          if(!file) return;
+          compressImageFile(file).then(function(dataUrl){
+            if(!dataUrl) return;
+            m.photos.push(dataUrl);
+            if(!m.avatarDataUrl) m.avatarDataUrl = dataUrl;
+            render();
+          });
+        });
+      });
+      document.querySelectorAll('[data-prm-member]').forEach(function(btn){
+        btn.addEventListener('click', function(e){
+          e.stopPropagation();
+          var mIdx = parseInt(btn.getAttribute('data-prm-member'),10);
+          var pIdx = parseInt(btn.getAttribute('data-prm-idx'),10);
+          var m = state.members[mIdx];
+          if(m){
+            m.photos.splice(pIdx,1);
+            m.avatarDataUrl = m.photos[0] || null;
+          }
+          render();
+        });
+      });
+
+      document.querySelectorAll('[data-member-name]').forEach(function(input){
+        input.addEventListener('input', function(e){
+          var idx = parseInt(input.getAttribute('data-member-name'),10);
+          if(state.members[idx]) state.members[idx].name = e.target.value;
+        });
+      });
+      document.querySelectorAll('[data-member-pos]').forEach(function(sel){
+        sel.addEventListener('change', function(){
+          var idx = parseInt(sel.getAttribute('data-member-pos'),10);
+          onMemberPositionChange(idx, sel.value);
+          render();
+        });
+      });
+      document.querySelectorAll('[data-remove-member]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var idx = parseInt(btn.getAttribute('data-remove-member'),10);
+          removeMember(idx);
+          render();
+        });
+      });
+      var addMemberBtnEl = document.getElementById('btn-add-member');
+      if(addMemberBtnEl) addMemberBtnEl.addEventListener('click', function(){ addMember(); render(); });
+    }
+
+    if(state.viewingMemberName){
+      var mpBack = document.getElementById('btn-memberprofile-back');
+      if(mpBack) mpBack.addEventListener('click', function(){ state.viewingMemberName = null; render(); });
+    }
+    if(state.viewingPostId){
+      var pdBack = document.getElementById('btn-postdetail-back');
+      if(pdBack) pdBack.addEventListener('click', function(){ state.viewingPostId = null; render(); });
+    }
+    if(state.editingProfile){ bindProfileEditOverlay(); }
+    if(state.settingGoal){
+      var goalCloseBtn = document.getElementById('btn-goal-close');
+      if(goalCloseBtn) goalCloseBtn.addEventListener('click', function(){ state.settingGoal=false; render(); });
+      document.querySelectorAll('[data-goal-type]').forEach(function(card){
+        card.addEventListener('click', function(){
+          startGoal(card.getAttribute('data-goal-type'));
+          state.settingGoal = false;
+          render();
+        });
+      });
+    }
+    if(state.viewingStats){
+      var statsCloseBtn = document.getElementById('btn-stats-close');
+      if(statsCloseBtn) statsCloseBtn.addEventListener('click', function(){ state.viewingStats=false; render(); });
+    }
+
+    var dmOpenBtn = document.getElementById('btn-open-dms');
+    if(dmOpenBtn) dmOpenBtn.addEventListener('click', function(){ state.viewingDMList = true; render(); });
+
+    if(state.viewingDMList){
+      var dmListClose = document.getElementById('btn-dmlist-close');
+      if(dmListClose) dmListClose.addEventListener('click', function(){ state.viewingDMList=false; render(); });
+      document.querySelectorAll('[data-open-dm]').forEach(function(row){
+        row.addEventListener('click', function(){
+          var conv = findDM(row.getAttribute('data-open-dm'));
+          if(conv) conv.unread = false;
+          state.viewingDMId = row.getAttribute('data-open-dm');
+          state.viewingDMList = false;
+          render();
+        });
+      });
+    }
+
+    if(state.viewingDMId){
+      var dmChatBack = document.getElementById('btn-dmchat-back');
+      if(dmChatBack) dmChatBack.addEventListener('click', function(){ state.viewingDMId=null; state.viewingDMList=true; render(); });
+      var dmSendBtn = document.getElementById('btn-dm-send');
+      if(dmSendBtn) dmSendBtn.addEventListener('click', function(){ sendDM(state.viewingDMId); });
+      var dmInputEl = document.getElementById('dm-input-'+state.viewingDMId);
+      if(dmInputEl){
+        dmInputEl.addEventListener('keydown', function(e){
+          if(e.key==='Enter'){ e.preventDefault(); sendDM(state.viewingDMId); }
+        });
+        var thread = document.getElementById('dm-thread-'+state.viewingDMId);
+        if(thread) thread.scrollTop = thread.scrollHeight;
+      }
+    }
+
+    if(state.activeTab==='live'){ bindLiveTab(); }
+    if(state.composerOpen){ bindComposer(); }
+  }
+
+  /* ---- comment / post actions ---- */
+  function handleCommentAction(btn){
+    var action = btn.getAttribute('data-action');
+    var postId = btn.getAttribute('data-post');
+    var post = findPost(postId);
+    if(!post) return;
+
+    if(action==='pin-profile'){
+      togglePinToProfile(post);
+      render();
+      return;
+    }
+    if(action==='toggle-post-like'){
+      post.liked = !post.liked;
+      post.likes += post.liked ? 1 : -1;
+      if(post.likes<0) post.likes = 0;
+      render();
+      return;
+    }
+    if(action==='toggle-save'){
+      post.saved = !post.saved;
+      render();
+      return;
+    }
+    if(action==='toggle-comments'){
+      toggleCommentsOpen(post);
+      return;
+    }
+
+    var commentId = btn.getAttribute('data-comment');
+    var comment = post.comments.filter(function(c){ return c.id===commentId; })[0];
+
+    if(action==='like-comment'){
+      if(!comment) return;
+      comment.liked = !comment.liked;
+      comment.likes = (comment.likes||0) + (comment.liked ? 1 : -1);
+      if(comment.likes<0) comment.likes = 0;
+      render();
+    } else if(action==='pin'){
+      post.pinnedCommentId = post.pinnedCommentId===commentId ? null : commentId;
+      render();
+    } else if(action==='delete'){
+      post.comments = post.comments.filter(function(c){ return c.id!==commentId; });
+      if(post.pinnedCommentId===commentId) post.pinnedCommentId=null;
+      render();
+    } else if(action==='reply'){
+      state.replyOpenCommentId = state.replyOpenCommentId===commentId ? null : commentId;
+      state.replyDraft = '';
+      render();
+      var input = document.getElementById('reply-input-'+commentId);
+      if(input){
+        input.focus();
+        input.addEventListener('input', function(e){ state.replyDraft = e.target.value; });
+      }
+    } else if(action==='send-reply'){
+      var text = (state.replyDraft||'').trim();
+      if(!text) return;
+      post.comments.push(makeComment(state.name, text, {isReply:true, likes:0}));
+      state.replyOpenCommentId = null; state.replyDraft='';
+      render();
+    }
+  }
+
+  function bindComposer(){
+    if(state.composerStep==='pick'){
+      document.getElementById('btn-composer-close').addEventListener('click', function(){ state.composerOpen = false; render(); });
+      document.getElementById('btn-pick-album').addEventListener('click', function(){ document.getElementById('file-post-photo').click(); });
+      document.getElementById('file-post-photo').addEventListener('change', function(e){
+        var file = e.target.files && e.target.files[0];
+        if(!file) return;
+        compressImageFile(file).then(function(dataUrl){
+          if(!dataUrl) return;
+          state.composerImage = {type:'upload', dataUrl: dataUrl};
+          state.composerStep = 'caption'; state.composerFilter='none';
+          render();
+        });
+      });
+      document.querySelectorAll('.template-tile').forEach(function(tile){
+        tile.addEventListener('click', function(){
+          state.composerImage = {type:'template', moodId: tile.getAttribute('data-mood')};
+          state.composerStep = 'caption';
+          render();
+        });
+      });
+    } else {
+      document.getElementById('btn-composer-back').addEventListener('click', function(){
+        state.composerStep='pick'; state.composerImage=null; render();
+      });
+      document.getElementById('btn-composer-share').addEventListener('click', submitPost);
+
+      var autoCapBtn = document.getElementById('btn-auto-caption');
+      if(autoCapBtn){
+        autoCapBtn.addEventListener('click', function(){
+          autoCapBtn.disabled = true;
+          autoCapBtn.textContent = '生成中…';
+          function applyCaption(text){
+            state.composerText = text.slice(0,140);
+            var ta = document.getElementById('composer-text');
+            if(ta) ta.value = state.composerText;
+            var cc = document.getElementById('char-count');
+            if(cc) cc.textContent = state.composerText.length + ' / 140';
+            autoCapBtn.disabled = false;
+            autoCapBtn.textContent = '✨ 自動生成';
+          }
+          if(state.composerImage.type==='upload'){
+            requestAICaption(state.composerImage.dataUrl, state.name, state.groupName, state.position).then(function(caption){
+              applyCaption(caption || pick(CAPTION_TEMPLATES));
+            });
+          } else {
+            applyCaption(pick(CAPTION_TEMPLATES));
+          }
+        });
+      }
+
+      var textarea = document.getElementById('composer-text');
+      textarea.addEventListener('input', function(e){
+        state.composerText = e.target.value;
+        var cc = document.getElementById('char-count');
+        if(cc) cc.textContent = state.composerText.length + ' / 140';
+      });
+
+      document.querySelectorAll('.filter-chip').forEach(function(chip){
+        chip.addEventListener('click', function(){
+          state.composerFilter = chip.getAttribute('data-filter');
+          document.querySelectorAll('.filter-chip').forEach(function(c){ c.classList.remove('active'); });
+          chip.classList.add('active');
+          var img = document.getElementById('composer-preview-img');
+          if(img){ var fdef = FILTERS.filter(function(f){return f.id===state.composerFilter;})[0]; img.style.filter = fdef.css; }
+        });
+      });
+
+      document.querySelectorAll('.hashtag-chip').forEach(function(chip){
+        chip.addEventListener('click', function(){
+          var tag = chip.getAttribute('data-tag');
+          var ta = document.getElementById('composer-text');
+          var sep = (state.composerText && !/\s$/.test(state.composerText)) ? ' ' : '';
+          var newVal = (state.composerText + sep + tag).slice(0,140);
+          state.composerText = newVal;
+          if(ta) ta.value = newVal;
+          var cc = document.getElementById('char-count');
+          if(cc) cc.textContent = newVal.length + ' / 140';
+        });
+      });
+    }
+  }
+
+  /* ---------------- post actions ---------------- */
+  function submitPost(){
+    if(!state.composerImage) return;
+    var post = {
+      id: Date.now(),
+      name: state.name, position: state.position, color: AVATAR_COLORS[0],
+      avatarDataUrl: state.avatarDataUrl,
+      photo: state.composerImage,
+      filter: state.composerImage.type==='upload' ? state.composerFilter : null,
+      caption: state.composerText.trim() || '📷',
+      time: nowLabel(), likes:0, comments:[], isMine:true,
+      aiComments:null, pinnedCommentId:null, pinnedToProfile:false, pinnedAt:null, liked:false, saved:false
+    };
+    state.posts.unshift(post);
+    state.composerOpen = false;
+    state.composerImage = null;
+    state.composerText = '';
+    render();
+
+    if(post.photo.type==='upload'){
+      post.aiComments = [];
+      requestAIComments(post);
+    }
+    scheduleEngagement(post.id);
+  }
+
+  function requestAIComments(post){
+    try{
+      var match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/.exec(post.photo.dataUrl);
+      if(!match){ return; }
+      var mediaType = match[1], base64Data = match[2];
+      var prompt = "あなたはK-POPファンダムのSNSコメント欄をシミュレートします。これは、アイドル「"+post.name+"」（グループ:"+state.groupName+"、ポジション:"+post.position+"）が投稿した写真とキャプションです。キャプション:「"+post.caption+"」\n\n" +
+        "この写真の内容をよく見て、今風の日本語K-POPファンが書きそうなコメントを12件、JSON配列のみで出力してください。写真に写っているものに合わせて反応の種類を変えてください（例: 料理が写っていたら「美味しそう」「これ何食べてるの?」、景色なら「景色いい」「どこ?」、ペットや動物なら「かわいい動物も好き」、本人の見た目が中心なら外見への反応、など、内容に応じて自然に）。半分程度は「かわいい😍」「いいね!」「尊い」のような短く自然な反応（絵文字だけの短いものも含めてOK）、残り半分はもう少し具体的な感想にしてください。各要素は次の形式にしてください: {\"user\":\"英数字と_のみのSNSユーザー名（日本語不可）\",\"text\":\"コメント本文。絵文字を適度に含め、カジュアルな日本語で、写真に実際に写っている内容に触れるものも混ぜること\"}。JSON配列以外の文字（説明文やコードブロック記号）は絶対に出力しないでください。";
+
+      fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          model:"claude-sonnet-4-6",
+          max_tokens:1600,
+          messages:[{ role:"user", content:[
+            {type:"image", source:{type:"base64", media_type:mediaType, data:base64Data}},
+            {type:"text", text:prompt}
+          ]}]
+        })
+      }).then(function(r){ return r.json(); })
+      .then(function(data){
+        var textBlock = (data.content||[]).map(function(b){ return b.text || ''; }).join('\n');
+        var cleaned = textBlock.replace(/```json|```/g,'').trim();
+        var arr = JSON.parse(cleaned);
+        if(Array.isArray(arr) && arr.length>0){
+          post.aiComments = arr.filter(function(x){ return x && x.user && x.text; });
+        }
+      }).catch(function(){});
+    }catch(e){}
+  }
+
+  function requestAICaption(dataUrl, name, groupName, position){
+    return new Promise(function(resolve){
+      try{
+        var match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/.exec(dataUrl);
+        if(!match){ resolve(null); return; }
+        var mediaType = match[1], base64Data = match[2];
+        var prompt = "あなたはK-POPアイドル「"+name+"」（グループ:"+groupName+"、ポジション:"+position+"）本人としてSNSに投稿するキャプションを1つだけ考えます。この写真に実際に写っているもの（衣装や私服、食べ物、景色、場所、表情など）をよく見て、それに合った今風でカジュアルな日本語のキャプションを1つ、絵文字を適度に含めて40文字以内で書いてください。写真の内容が食べ物なら味の感想、景色なら場所の様子、服装なら今日のスタイルについてなど、内容に応じて自然な切り口にしてください。ハッシュタグは1つまで。説明文やカギ括弧、前置きは一切付けず、キャプション本文だけを出力してください。";
+        fetch("https://api.anthropic.com/v1/messages", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({
+            model:"claude-sonnet-4-6",
+            max_tokens:200,
+            messages:[{ role:"user", content:[
+              {type:"image", source:{type:"base64", media_type:mediaType, data:base64Data}},
+              {type:"text", text:prompt}
+            ]}]
+          })
+        }).then(function(r){ return r.json(); })
+        .then(function(data){
+          var textBlock = (data.content||[]).map(function(b){ return b.text || ''; }).join('\n').trim();
+          var cleaned = textBlock.replace(/^["「]|["」]$/g,'').trim();
+          resolve(cleaned || null);
+        }).catch(function(){ resolve(null); });
+      }catch(e){ resolve(null); }
+    });
+  }
+
+  function patchCaption(post){
+    var el = document.getElementById('caption-'+post.id);
+    if(el){ el.innerHTML = linkifyCaption(post.caption); }
+  }
+
+  function patchFollowerCount(){
+    var el = document.getElementById('follower-count');
+    if(el) el.textContent = fmtFollowers(state.followers);
+  }
+  function patchUnreadBadges(){
+    document.querySelectorAll('.tab[data-tab="notif"] .badge-count, .nav-item[data-tab="notif"] .nav-dot').forEach(function(el){ el.remove(); });
+    if(state.unreadNotif>0 && state.activeTab!=='notif'){
+      var tabEl = document.querySelector('.tab[data-tab="notif"]');
+      if(tabEl){ var b=document.createElement('span'); b.className='badge-count'; b.textContent=state.unreadNotif; tabEl.appendChild(b); }
+      var navEl = document.querySelector('.nav-item[data-tab="notif"]');
+      if(navEl){ var d=document.createElement('span'); d.className='nav-dot'; navEl.insertBefore(d, navEl.firstChild); }
+    }
+  }
+  function patchPost(post, newComments){
+    var likesEl = document.getElementById('likes-'+post.id);
+    if(likesEl) likesEl.textContent = post.likes.toLocaleString()+'件のいいね';
+    var toggleEl = document.getElementById('ctoggle-'+post.id);
+    if(toggleEl){
+      if(post.comments.length>1){
+        toggleEl.textContent = 'コメント'+post.comments.length+'件をすべて見る';
+        toggleEl.style.display = '';
+      } else {
+        toggleEl.style.display = 'none';
+      }
+    }
+    if(newComments && newComments.length){
+      var latest = newComments[newComments.length-1];
+      var prevEl = document.getElementById('cprev-'+post.id);
+      if(prevEl){ prevEl.innerHTML = '<b>'+esc(latest.user)+'</b>'+esc(latest.text); }
+    }
+    var commentsWrap = document.getElementById('comments-'+post.id);
+    if(commentsWrap && newComments && newComments.length){
+      newComments.forEach(function(nc){
+        commentsWrap.insertAdjacentHTML('beforeend', renderCommentBlock(post, nc));
+      });
+      var actionsEls = commentsWrap.querySelectorAll('[data-action]');
+      actionsEls.forEach(function(btn){
+        if(btn._bound) return;
+        btn._bound = true;
+        btn.addEventListener('click', function(){ handleCommentAction(btn); });
+      });
+      commentsWrap.scrollTop = commentsWrap.scrollHeight;
+    }
+  }
+
+  function scheduleEngagement(postId){
+    var waves = [500, 1000, 1600, 2400, 3400, 4600, 6000, 7600, 9500, 11800, 14500, 17800, 21500, 26000, 31000, 37000, 44000, 52000];
+    waves.forEach(function(delay, i){
+      setTimeout(function(){
+        var post = findPost(postId);
+        if(!post) return;
+        var likeBump = Math.max(8, Math.floor((80 - i*3) + Math.random()*140));
+        post.likes += likeBump;
+
+        var newComments = [];
+        var commentChance = Math.max(0.5, 0.97 - i*0.03);
+        var burst = 1;
+        var r = Math.random();
+        if(r < 0.15) burst = 3; else if(r < 0.4) burst = 2;
+        for(var k=0;k<burst;k++){
+          if(Math.random() < commentChance){
+            var user, text, isAi=false;
+            if(post.aiComments && post.aiComments.length>0){
+              var picked = post.aiComments.shift();
+              user = picked.user; text = picked.text; isAi = true;
+            } else {
+              user = pick(FAN_NAMES); text = getRealisticComment(post.name);
+            }
+            var nc = makeComment(user, text, {ai:isAi});
+            post.comments.unshift(nc);
+            newComments.push(nc);
+            state.notifications.unshift({ icon:'💬', time:nowLabel(), html: '<b>'+esc(user)+'</b> があなたの投稿にコメントしました:「'+esc(text)+'」' });
+            if(state.activeTab !== 'notif'){ state.unreadNotif++; }
+          }
+        }
+        state.followers += Math.max(2, 18 - i*1) + Math.floor(Math.random()*15);
+
+        if(Math.random() < 0.1){ spawnRandomDM(); patchDMBadge(); }
+
+        patchPost(post, newComments);
+        patchFollowerCount();
+        patchUnreadBadges();
+      }, delay);
+    });
+  }
+
+  function advanceTime(){
+    var member = pick(state.members);
+    var mood = pick(MOODS.filter(function(m){return m.id!=='live';}));
+    var caption = pickCaptionForMood(mood.id);
+    var initialLikes = 300 + Math.floor(Math.random()*900);
+    var photo = (member.photos && member.photos.length>0) ? {type:'upload', dataUrl: pick(member.photos)} : {type:'template', moodId: mood.id};
+    var initialComments = [];
+    var numComments = 4 + Math.floor(Math.random()*4);
+    for(var i=0;i<numComments;i++){ initialComments.push(makeComment(pick(FAN_NAMES), getRealisticComment(member.name))); }
+    var post = {
+      id: Date.now()+Math.random(),
+      name: member.name, position: member.position, color: member.color, avatarDataUrl: member.avatarDataUrl,
+      photo: photo, filter:null,
+      caption: caption, time: nowLabel(), likes: initialLikes,
+      comments: initialComments,
+      isMine:false, aiComments:null, pinnedCommentId:null, pinnedToProfile:false, pinnedAt:null, liked:false, saved:false
+    };
+    state.posts.unshift(post);
+    if(photo.type==='upload'){
+      post.aiComments = [];
+      requestAIComments(post);
+      requestAICaption(photo.dataUrl, member.name, state.groupName, member.position).then(function(aiCaption){
+        if(aiCaption){
+          post.caption = aiCaption;
+          patchCaption(post);
+        }
+      });
+    }
+
+    var myPosts = state.posts.filter(function(p){ return p.isMine; });
+    if(myPosts.length>0 && Math.random()<0.7){
+      var target = myPosts[0];
+      var fan = pick(FAN_NAMES);
+      target.comments.unshift(makeComment(fan, getRealisticComment(state.name), {likes:0}));
+      target.likes += 20 + Math.floor(Math.random()*80);
+    }
+
+    var newFollower = pick(FAN_NAMES);
+    state.notifications.unshift({ icon:'⭐', time:nowLabel(), html: '<b>'+esc(newFollower)+'</b> があなたをフォローしました' });
+    state.notifications.unshift({ icon:'📣', time:nowLabel(), html: '<b>'+esc(member.name)+'</b>（'+esc(member.position)+'）が新しい投稿をしました' });
+    if(state.activeTab !== 'notif'){ state.unreadNotif += 2; }
+
+    if(Math.random() < 0.4){ spawnRandomDM(); }
+
+    state.followers += 60 + Math.floor(Math.random()*200);
+    render();
+  }
+
+  /* ---------------- LIVE STREAM ---------------- */
+  function bindLiveTab(){
+    var startBtn = document.getElementById('btn-start-live');
+    if(startBtn) startBtn.addEventListener('click', startLive);
+    var endBtn = document.getElementById('btn-end-live');
+    if(endBtn) endBtn.addEventListener('click', stopLive);
+    var retryBtn = document.getElementById('btn-retry-cam');
+    if(retryBtn) retryBtn.addEventListener('click', function(){ state.liveCamDenied=false; state.liveCamErrorType=null; attachCameraToVideo(true); });
+    var postSsBtn = document.getElementById('btn-post-screenshot');
+    if(postSsBtn) postSsBtn.addEventListener('click', function(){
+      var img = state.liveCapturedFrame ? {type:'upload', dataUrl: state.liveCapturedFrame} : {type:'template', moodId:'live'};
+      state.composerImage = img;
+      state.composerText = '今日の配信、来てくれてありがとう🎥💗 #配信 #供給';
+      state.composerFilter = 'none';
+      state.composerStep = 'caption';
+      state.composerOpen = true;
+      state.liveSummary = null;
+      render();
+    });
+    var closeBtn = document.getElementById('btn-close-summary');
+    if(closeBtn) closeBtn.addEventListener('click', function(){ state.liveSummary = null; render(); });
+  }
+
+  function attachCameraToVideo(forceRetry){
+    var videoEl = document.getElementById('live-video');
+    var noCamEl = document.getElementById('live-noCam');
+    if(!videoEl) return;
+    if(cameraStream && !forceRetry){
+      videoEl.srcObject = cameraStream;
+      if(noCamEl) noCamEl.style.display = 'none';
+      return;
+    }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      state.liveCamDenied = true; state.liveCamErrorType = 'unsupported';
+      if(noCamEl){ noCamEl.style.display = 'flex'; }
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({video:true, audio:false}).then(function(stream){
+      cameraStream = stream;
+      state.liveCamDenied = false; state.liveCamErrorType = null;
+      var v = document.getElementById('live-video');
+      var nc = document.getElementById('live-noCam');
+      if(v){ v.srcObject = stream; }
+      if(nc){ nc.style.display = 'none'; }
+    }).catch(function(err){
+      state.liveCamDenied = true;
+      state.liveCamErrorType = (err && err.name) || 'unknown';
+      render();
+    });
+  }
+
+  function startLive(){
+    state.liveActive = true;
+    state.liveStartTime = Date.now();
+    state.liveViewers = 600 + Math.floor(Math.random()*1800);
+    state.liveComments = [];
+    state.liveSummary = null;
+    render();
+
+    var timerInterval = setInterval(function(){
+      if(!state.liveActive) return;
+      var elapsed = Math.floor((Date.now()-state.liveStartTime)/1000);
+      var mm = String(Math.floor(elapsed/60)).padStart(2,'0');
+      var ss = String(elapsed%60).padStart(2,'0');
+      var t = document.getElementById('live-timer');
+      if(t) t.textContent = mm+':'+ss;
+    }, 1000);
+
+    var viewerInterval = setInterval(function(){
+      if(!state.liveActive) return;
+      state.liveViewers += 15 + Math.floor(Math.random()*120);
+      var vc = document.getElementById('live-viewer-count');
+      if(vc) vc.textContent = fmtFollowers(state.liveViewers);
+    }, 2200);
+
+    var commentInterval = setInterval(function(){
+      if(!state.liveActive) return;
+      var roll = Math.random();
+      if(roll < 0.14){
+        var member = pick(state.members);
+        var msg = { user: member.name+'（メンバー）', text: '配信きたー!みんな見てくれてありがとう💜' };
+        state.liveComments.push(msg);
+        appendLiveComment(msg, true);
+      } else if(roll < 0.28){
+        var gift = pick(GIFTS);
+        var fan = pick(FAN_NAMES);
+        showGiftToast(fan, gift);
+        state.liveViewers += 5;
+      } else {
+        var msg2 = { user: pick(FAN_NAMES), text: pick(LIVE_COMMENTS) };
+        state.liveComments.push(msg2);
+        appendLiveComment(msg2, false);
+      }
+    }, 1000);
+
+    liveTimers = [timerInterval, viewerInterval, commentInterval];
+  }
+
+  function appendLiveComment(msg, highlight){
+    var wrap = document.getElementById('live-comments-scroll');
+    if(!wrap) return;
+    var div = document.createElement('div');
+    div.className = 'live-comment-line';
+    div.innerHTML = '<b'+(highlight?' style="color:#f4c95d;"':'')+'>'+esc(msg.user)+'</b> '+esc(msg.text);
+    wrap.appendChild(div);
+    while(wrap.children.length > 10){ wrap.removeChild(wrap.firstChild); }
+  }
+
+  function showGiftToast(fan, gift){
+    var stage = document.getElementById('live-stage');
+    if(!stage) return;
+    var toast = document.createElement('div');
+    toast.className = 'live-gift-toast';
+    toast.textContent = gift.icon+' '+fan+' が「'+gift.name+'」を送りました！';
+    stage.appendChild(toast);
+    setTimeout(function(){ if(toast.parentNode) toast.parentNode.removeChild(toast); }, 1900);
+  }
+
+  function captureFrame(){
+    var videoEl = document.getElementById('live-video');
+    if(!videoEl || !cameraStream || !videoEl.videoWidth){ return null; }
+    try{
+      var canvas = document.getElementById('hidden-canvas');
+      canvas.width = videoEl.videoWidth; canvas.height = videoEl.videoHeight;
+      var ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width,0); ctx.scale(-1,1);
+      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.85);
+    }catch(e){ return null; }
+  }
+
+  function stopLive(){
+    var frame = captureFrame();
+    state.liveCapturedFrame = frame;
+
+    liveTimers.forEach(function(t){ clearInterval(t); });
+    liveTimers = [];
+    if(cameraStream){
+      cameraStream.getTracks().forEach(function(tr){ tr.stop(); });
+      cameraStream = null;
+    }
+
+    var elapsed = Math.floor((Date.now()-state.liveStartTime)/1000);
+    var mm = String(Math.floor(elapsed/60)).padStart(2,'0');
+    var ss = String(elapsed%60).padStart(2,'0');
+    var followersGained = 200 + Math.floor(state.liveViewers*0.08) + Math.floor(Math.random()*300);
+
+    state.liveSummary = { peakViewers: state.liveViewers, duration: mm+':'+ss, followersGained: followersGained };
+    state.followers += followersGained;
+    state.liveActive = false;
+    render();
+  }
+
+  rebuildTeammateDrafts();
+  render();
+
+  fbAuth.onAuthStateChanged(function(user){
+    if(user){
+      state.uid = user.uid;
+      state.userDisplayName = user.displayName || '';
+      state.authLoading = true;
+      state.screen = 'loading';
+      render();
+      loadStateFromFirestore(user.uid).then(function(found){
+        state.authLoading = false;
+        if(!found){ state.screen = 'onboarding'; rebuildTeammateDrafts(); }
+        render();
+      });
+    } else {
+      state.uid = null;
+      state.authLoading = false;
+      state.screen = 'login';
+      render();
+    }
+  });
+
+  setInterval(function(){ if(state.screen==='app'){ saveState(); } }, 8000);
+  window.addEventListener('beforeunload', function(){ if(state.screen==='app'){ saveState(); } });
+})();
+</script>
+
+<!-- GoatCounter analytics: https://guant.goatcounter.com/ -->
+<script data-goatcounter="https://guant.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
