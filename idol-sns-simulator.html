@@ -336,24 +336,6 @@
 <div id="app-root"></div>
 <canvas id="hidden-canvas" style="display:none;"></canvas>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script>
-  var firebaseConfig = {
-    apiKey: "AIzaSyDu9vjEDgkC_wfS8KxM1jJURNbmj99wXD4",
-    authDomain: "idol-sns.firebaseapp.com",
-    projectId: "idol-sns",
-    storageBucket: "idol-sns.firebasestorage.app",
-    messagingSenderId: "109514553847",
-    appId: "1:109514553847:web:7a3815f9c9a3cdc90556f2",
-    measurementId: "G-GRH510LJGF"
-  };
-  firebase.initializeApp(firebaseConfig);
-  var fbAuth = firebase.auth();
-  var fbDb = firebase.firestore();
-</script>
-
 <script>
 (function(){
 
@@ -588,8 +570,7 @@
 
   /* ---------------- state ---------------- */
   var state = {
-    screen:'loading',
-    uid:null, userDisplayName:'', authLoading:true,
+    screen:'onboarding',
     name:'', groupName:'', bio:'', position:null, gender:'girl', debutYear:'2024',
     avatarDataUrl:null, backgroundDataUrl:null,
     groupSize:5, teammateDrafts:[], pendingGoalType:null,
@@ -816,138 +797,44 @@
     });
   }
 
-  /* ---------------- root render / cloud persistence ---------------- */
+  /* ---------------- root render / local persistence ---------------- */
+  var STORAGE_KEY = 'orbit_save_v1';
   var PERSIST_FIELDS = ['name','groupName','bio','position','gender','debutYear','avatarDataUrl','backgroundDataUrl',
     'groupSize','members','followers','sessionStartFollowers','posts','notifications','goal','dms','unreadNotif','screen'];
 
-  // Strip heavy base64 photo data before writing to Firestore (1MiB per-document limit).
-  // Photos still work fully within a session; they just won't sync across devices/logins yet.
-  function sanitizeForFirestore(snapshot){
-    var s = JSON.parse(JSON.stringify(snapshot));
-    s.avatarDataUrl = null;
-    s.backgroundDataUrl = null;
-    if(Array.isArray(s.members)){
-      s.members.forEach(function(m){ m.photos = []; m.avatarDataUrl = null; });
-    }
-    if(Array.isArray(s.posts)){
-      s.posts.forEach(function(p){
-        if(p.photo && p.photo.type==='upload'){ p.photo = {type:'template', moodId:'selca'}; }
-        p.avatarDataUrl = null;
-      });
-    }
-    return s;
-  }
-
   function saveState(){
-    if(!state.uid) return;
     try{
       var snapshot = {};
       PERSIST_FIELDS.forEach(function(k){ snapshot[k] = state[k]; });
       if(Array.isArray(snapshot.posts) && snapshot.posts.length>60){ snapshot.posts = snapshot.posts.slice(0,60); }
       if(Array.isArray(snapshot.notifications) && snapshot.notifications.length>100){ snapshot.notifications = snapshot.notifications.slice(0,100); }
-      var clean = sanitizeForFirestore(snapshot);
-      fbDb.collection('users').doc(state.uid).set(clean).catch(function(){ /* fail silently */ });
-    }catch(e){ /* fail silently, app still works this session */ }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    }catch(e){ /* storage full or unavailable - fail silently, app still works without persistence */ }
   }
 
-  function loadStateFromFirestore(uid){
-    return fbDb.collection('users').doc(uid).get().then(function(doc){
-      if(doc.exists){
-        var data = doc.data();
-        PERSIST_FIELDS.forEach(function(k){ if(data[k]!==undefined){ state[k] = data[k]; } });
-        return state.screen==='app' && !!state.name;
-      }
-      return false;
-    }).catch(function(){ return false; });
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return false;
+      var data = JSON.parse(raw);
+      PERSIST_FIELDS.forEach(function(k){ if(data[k]!==undefined){ state[k] = data[k]; } });
+      return state.screen==='app' && !!state.name;
+    }catch(e){ return false; }
   }
 
   function resetAllData(){
     if(!confirm('保存されているデータを削除して、最初からやり直しますか？この操作は取り消せません。')) return;
-    if(state.uid){
-      fbDb.collection('users').doc(state.uid).delete().catch(function(){}).then(function(){ location.reload(); });
-    } else {
-      location.reload();
-    }
-  }
-
-  function signOutUser(){
-    fbAuth.signOut();
-  }
-
-  var saveDebounceTimer = null;
-  function scheduleSave(){
-    if(!state.uid) return;
-    if(saveDebounceTimer){ clearTimeout(saveDebounceTimer); }
-    saveDebounceTimer = setTimeout(function(){ saveDebounceTimer = null; saveState(); }, 2500);
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+    location.reload();
   }
 
   function render(){
-    if(state.screen==='loading'){ root.innerHTML = renderLoadingScreen(); }
-    else if(state.screen==='login'){ root.innerHTML = renderLoginScreen(); bindLoginScreen(); }
-    else if(state.screen==='onboarding'){ root.innerHTML = renderOnboarding(); bindOnboarding(); }
+    if(state.screen==='onboarding'){ root.innerHTML = renderOnboarding(); bindOnboarding(); }
     else {
       root.innerHTML = renderApp(); bindApp();
       if(state.activeTab==='live' && state.liveActive){ attachCameraToVideo(); }
-      scheduleSave();
+      saveState();
     }
-  }
-
-  function renderLoadingScreen(){
-    return '<div class="phone"><div class="notch"></div><div class="screen">'+
-      '<div class="onboard" style="justify-content:center; align-items:center; text-align:center;">'+
-        '<div class="eyebrow">ORBIT</div><div class="field-hint">読み込み中…</div>'+
-      '</div></div></div>';
-  }
-
-  function renderLoginScreen(){
-    var body = '<div class="eyebrow">ORBIT · IDOL MODE</div>'+
-      '<h1 class="display">ログインして<br>始めよう</h1>'+
-      '<p class="sub">好きなIDとパスワードを決めて登録してください。次回以降は同じID・パスワードでログインすると続きから始められます。</p>'+
-      '<input type="text" id="auth-id" placeholder="ID（半角英数字・3〜20文字）" autocapitalize="off" autocorrect="off" style="margin-bottom:10px;">'+
-      '<input type="password" id="auth-pw" placeholder="パスワード（6文字以上）" style="margin-bottom:16px;">'+
-      '<button class="primary-btn" id="btn-signup" style="margin-top:0;">新規登録してはじめる</button>'+
-      '<button class="upload-btn" id="btn-login" style="margin-top:10px; width:100%; padding:14px;">すでに登録済み（ログイン）</button>';
-    return '<div class="phone"><div class="notch"></div><div class="screen">'+
-      '<div class="onboard" style="justify-content:center; align-items:center; text-align:center;">'+
-        body+
-      '</div></div></div>';
-  }
-
-  function idToEmail(id){ return id.trim().toLowerCase()+'@orbit.local'; }
-
-  function bindLoginScreen(){
-    var idInput = document.getElementById('auth-id');
-    var pwInput = document.getElementById('auth-pw');
-    var signupBtn = document.getElementById('btn-signup');
-    var loginBtn = document.getElementById('btn-login');
-    if(!signupBtn || !loginBtn) return;
-
-    signupBtn.addEventListener('click', function(){
-      var id = (idInput.value||'').trim();
-      var pw = pwInput.value||'';
-      if(!/^[a-zA-Z0-9_]{3,20}$/.test(id)){ alert('IDは半角英数字と_（アンダースコア）で3〜20文字にしてください。'); return; }
-      if(pw.length<6){ alert('パスワードは6文字以上にしてください。'); return; }
-      fbAuth.createUserWithEmailAndPassword(idToEmail(id), pw).then(function(cred){
-        return cred.user.updateProfile({displayName:id});
-      }).catch(function(err){
-        if(err.code==='auth/email-already-in-use'){ alert('このIDは既に使われています。別のIDにするか、「ログイン」をお試しください。'); }
-        else if(err.code==='auth/weak-password'){ alert('パスワードは6文字以上にしてください。'); }
-        else { alert('登録に失敗しました。\n'+(err && err.message ? err.message : '')); }
-      });
-    });
-
-    loginBtn.addEventListener('click', function(){
-      var id = (idInput.value||'').trim();
-      var pw = pwInput.value||'';
-      if(!id || !pw){ alert('IDとパスワードを入力してください。'); return; }
-      fbAuth.signInWithEmailAndPassword(idToEmail(id), pw).catch(function(err){
-        if(err.code==='auth/wrong-password' || err.code==='auth/user-not-found' || err.code==='auth/invalid-credential'){
-          alert('IDまたはパスワードが間違っています。まだ登録していない場合は「新規登録してはじめる」を使ってください。');
-        } else {
-          alert('ログインに失敗しました。\n'+(err && err.message ? err.message : ''));
-        }
-      });
-    });
   }
 
   /* ================= ONBOARDING ================= */
@@ -1589,8 +1476,7 @@
         '<div class="field-label">自己紹介</div>'+
         '<input type="text" id="edit-bio" value="'+esc(state.bio)+'" maxlength="40">'+
 
-        '<div class="field-hint" style="margin-top:22px;">ID「'+esc(state.userDisplayName||'')+'」にデータが保存されています。写真（アイコン・背景・投稿画像）はこの端末内だけの表示で、ログインし直すと消えます。</div>'+
-        '<button type="button" class="upload-btn small" id="btn-logout" style="margin-top:8px;">ログアウト</button>'+
+        '<div class="field-hint" style="margin-top:22px;">このデータはこの端末のブラウザ内に自動保存されています。別の端末では見られません。</div>'+
         '<button type="button" class="upload-btn small" id="btn-reset-data" style="margin-top:8px; color:#ff2d55; border-color:#ff2d55;">🗑 データをリセットして最初からやり直す</button>'+
       '</div>'+
     '</div>';
@@ -1599,7 +1485,6 @@
   function bindProfileEditOverlay(){
     document.getElementById('btn-profile-edit-done').addEventListener('click', function(){ state.editingProfile=false; render(); });
     document.getElementById('btn-reset-data').addEventListener('click', resetAllData);
-    document.getElementById('btn-logout').addEventListener('click', function(){ state.editingProfile=false; signOutUser(); });
 
     document.getElementById('edit-name').addEventListener('input', function(e){ state.name = e.target.value; });
     document.getElementById('edit-group').addEventListener('input', function(e){ state.groupName = e.target.value; });
@@ -2494,28 +2379,8 @@
   }
 
   rebuildTeammateDrafts();
+  if(!loadState()){ state.screen = 'onboarding'; }
   render();
-
-  fbAuth.onAuthStateChanged(function(user){
-    if(user){
-      state.uid = user.uid;
-      state.userDisplayName = user.displayName || '';
-      state.authLoading = true;
-      state.screen = 'loading';
-      render();
-      loadStateFromFirestore(user.uid).then(function(found){
-        state.authLoading = false;
-        if(!found){ state.screen = 'onboarding'; rebuildTeammateDrafts(); }
-        render();
-      });
-    } else {
-      state.uid = null;
-      state.authLoading = false;
-      state.screen = 'login';
-      render();
-    }
-  });
-
   setInterval(function(){ if(state.screen==='app'){ saveState(); } }, 8000);
   window.addEventListener('beforeunload', function(){ if(state.screen==='app'){ saveState(); } });
 })();
